@@ -10,50 +10,42 @@
         body {
             background-color: #fdfafb;
             background-image: 
-                repeating-linear-gradient(45deg, transparent, transparent 15px, rgba(228, 196, 204, 0.15) 15px, rgba(228, 196, 204, 0.15) 16px),
-                repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(228, 196, 204, 0.15) 15px, rgba(228, 196, 204, 0.15) 16px);
+                repeating-linear-gradient(45deg, transparent, transparent 15px, rgba(228, 196, 204, 0.1) 15px, rgba(228, 196, 204, 0.1) 16px),
+                repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(228, 196, 204, 0.1) 15px, rgba(228, 196, 204, 0.1) 16px);
             font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
             color: #292524;
             scroll-behavior: smooth;
         }
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
         .view-anim { animation: zoomIn 0.3s ease-out forwards; }
-        
-        .loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.7); z-index: 100; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
-        
+        .loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+        .modal-card { background: white; width: 100%; max-width: 450px; border-radius: 2.5rem; padding: 2rem; border: 4px border-rose-100; box-shadow: 0 30px 60px -12px rgba(0,0,0,0.3); }
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #eecfd8; border-radius: 10px; }
-        
-        input, textarea, select { transition: all 0.2s ease; border-width: 2px; border-color: #f3f4f6; }
-        input:focus, textarea:focus { border-color: #f43f5e !important; outline: none; box-shadow: 0 0 10px rgba(244, 63, 94, 0.1); }
-        button:active { transform: scale(0.96); }
-        .card-shadow { box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05); }
+        input, textarea, select { transition: all 0.2s ease; border-width: 2px; border-color: #f3f4f6; outline: none; }
+        input:focus, textarea:focus, select:focus { border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.1); }
     </style>
 </head>
-<body class="min-h-screen p-3 sm:p-4 md:p-8">
+<body class="min-h-screen p-3 sm:p-4 md:p-8 text-stone-800">
 
     <div id="loading" class="loading-overlay hidden">
         <div class="flex flex-col items-center gap-3">
-            <div class="animate-spin rounded-full h-10 w-10 border-4 border-rose-400 border-t-transparent"></div>
-            <p class="font-bold text-rose-500 uppercase text-[10px] tracking-[0.3em]">Hızlı Senkronizasyon...</p>
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-rose-400 border-t-transparent"></div>
+            <p class="font-black text-rose-500 uppercase text-[10px] tracking-[0.4em]">Bulutla Senkronize Ediliyor...</p>
         </div>
     </div>
 
     <div id="app-root" class="max-w-7xl mx-auto"></div>
+    <div id="modal-root"></div>
 
-    <div id="copyFeedback" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-stone-800 text-white px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-4 border-2 border-rose-300 opacity-0 pointer-events-none transition-all duration-300">
+    <div id="copyFeedback" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-stone-800 text-white px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-4 border-2 border-rose-300 opacity-0 pointer-events-none transition-all duration-300">
         <i data-lucide="check" class="text-rose-300 w-6 h-6"></i>
-        <span id="copyFeedbackText" class="font-black uppercase tracking-widest text-sm">İşlem Tamam!</span>
+        <span id="copyFeedbackText" class="font-black uppercase tracking-widest text-sm">İşlem Başarılı!</span>
     </div>
 
     <script>
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzgbQP7Cy_1juLVyayYn_9qHCVY3vDnaLFNdnGWUAjMe-zSaPY3Ws4M4wcVBBWxgT636A/exec";
-
-        const stickersData = {
-            motivasyon: ["🔥 YAPABİLİRSİN!", "🚀 UÇUŞA GEÇ", "⭐️ GÜNÜN YILDIZI", "🌈 PES ETME", "💪 ŞAMPİYON", "✨ PARLA!", "⚡️ FULL ENERJİ", "🎯 ODAKLAN"],
-            business: ["💼 TOPLANTIDA", "⏳ DEADLINE!", "☕️ KAHVE MOLASI", "✅ ONAYLANDI", "📊 VERİ ANALİZİ", "🚀 LANSMAN", "💡 FİKİR!"],
-            emoji: ["😀", "😂", "🥰", "😎", "🤩", "🥳", "🤯", "🚀", "🔥", "⚡️", "✨", "🌟", "💯", "✅", "💡", "💰", "💎", "🤝", "💪", "🎉"]
-        };
 
         window.app = {
             state: {
@@ -62,33 +54,27 @@
                 activeMember: 'Beyza',
                 archive: {},
                 isSyncing: false,
-                editMeetingId: null
+                editingTask: null 
             },
             
-            timers: { clock: null, sync: null, autoRefresh: null },
+            timers: { sync: null, autoRefresh: null },
 
             async init() {
                 const today = new Date();
                 this.state.selectedMonth = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
                 
-                const saved = localStorage.getItem('notlarim_v10_pro');
+                const saved = localStorage.getItem('notlarim_pro_v18');
                 if (saved) {
-                    try {
-                        this.state.archive = JSON.parse(saved);
-                    } catch(e) {
-                        this.state.archive = {};
-                    }
+                    try { this.state.archive = JSON.parse(saved); } catch(e) { this.state.archive = {}; }
                 }
 
                 this.render();
                 this.startClock();
-                
                 await this.loadFromSheets(saved ? true : false);
 
-                // 2 Saniyede bir otomatik yenileme
                 this.timers.autoRefresh = setInterval(() => {
                     const active = document.activeElement;
-                    if (active && active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA') {
+                    if (!this.state.isSyncing && !this.state.editingTask && active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA') {
                         this.loadFromSheets(true); 
                     }
                 }, 2000);
@@ -101,13 +87,20 @@
                     const res = await fetch(`${APPS_SCRIPT_URL}?action=load&monthKey=${this.state.selectedMonth}&t=${Date.now()}`);
                     const sheetsData = await res.json();
                     
-                    if (sheetsData && !sheetsData.status) {
-                        const currentStr = JSON.stringify(this.state.archive[this.state.selectedMonth] || {});
-                        const newStr = JSON.stringify(sheetsData);
-                        
-                        if (currentStr !== newStr) {
-                            this.state.archive[this.state.selectedMonth] = sheetsData;
-                            localStorage.setItem('notlarim_v10_pro', JSON.stringify(this.state.archive));
+                    if (sheetsData && typeof sheetsData === 'object' && !sheetsData.status) {
+                        const sanitized = {
+                            tasks: Array.isArray(sheetsData.tasks) ? sheetsData.tasks : [],
+                            teamTasks: sheetsData.teamTasks || { Beyza: [], Zeliha: [], Burak: [] },
+                            contentIdeas: Array.isArray(sheetsData.contentIdeas) ? sheetsData.contentIdeas : [],
+                            weeklyNotes: Array.isArray(sheetsData.weeklyNotes) ? sheetsData.weeklyNotes : [],
+                            adsData: Array.isArray(sheetsData.adsData) ? sheetsData.adsData : [],
+                            dashboardNotes: sheetsData.dashboardNotes || '',
+                            meetings: Array.isArray(sheetsData.meetings) ? sheetsData.meetings : []
+                        };
+
+                        if (JSON.stringify(this.state.archive[this.state.selectedMonth]) !== JSON.stringify(sanitized)) {
+                            this.state.archive[this.state.selectedMonth] = sanitized;
+                            localStorage.setItem('notlarim_pro_v18', JSON.stringify(this.state.archive));
                             this.render(false);
                         }
                     }
@@ -123,25 +116,22 @@
 
             getActiveData() {
                 if (!this.state.archive[this.state.selectedMonth]) {
-                    this.state.archive[this.state.selectedMonth] = { tasks: [], teamTasks: { Beyza: [], Zeliha: [], Burak: [] }, contentIdeas: [], weeklyNotes: [], adsData: [], dashboardNotes: '', monthlyGoals: '', meetings: [] };
+                    this.state.archive[this.state.selectedMonth] = { tasks: [], teamTasks: { Beyza: [], Zeliha: [], Burak: [] }, contentIdeas: [], weeklyNotes: [], adsData: [], dashboardNotes: '', meetings: [] };
                 }
                 return this.state.archive[this.state.selectedMonth];
             },
 
             saveData(reRender = true) {
-                localStorage.setItem('notlarim_v10_pro', JSON.stringify(this.state.archive));
+                this.state.isSyncing = true;
+                localStorage.setItem('notlarim_pro_v18', JSON.stringify(this.state.archive));
                 if (reRender) this.render(false);
                 
                 if (this.timers.sync) clearTimeout(this.timers.sync);
                 this.timers.sync = setTimeout(() => {
-                    this.state.isSyncing = true;
                     fetch(APPS_SCRIPT_URL, {
                         method: "POST",
                         body: JSON.stringify({ monthKey: this.state.selectedMonth, data: this.getActiveData() })
-                    }).then(() => {
-                        this.state.isSyncing = false;
-                        console.log("Sync done.");
-                    });
+                    }).then(() => { this.state.isSyncing = false; });
                 }, 1000);
             },
 
@@ -162,11 +152,7 @@
                 }, 1000);
             },
 
-            setView(v) { 
-                this.state.currentView = v; 
-                this.state.editMeetingId = null; 
-                this.render(true); 
-            },
+            setView(v) { this.state.currentView = v; this.state.editingTask = null; this.render(true); },
 
             async handleMonthChange(dir) {
                 const parts = this.state.selectedMonth.split('-');
@@ -181,11 +167,10 @@
             addTask() {
                 const input = document.getElementById('newTaskInput');
                 if(!input || !input.value.trim()) return;
-                const data = this.getActiveData();
-                data.tasks.unshift({ id: Date.now(), text: input.value.trim(), completed: false, priority: document.getElementById('newTaskPriority').value, dueDate: document.getElementById('newTaskDate').value });
+                this.getActiveData().tasks.unshift({ id: Date.now(), text: input.value.trim(), completed: false, priority: document.getElementById('newTaskPriority').value, dueDate: document.getElementById('newTaskDate').value });
                 this.saveData();
                 input.value = '';
-                this.showToast('Görev Eklendi!');
+                this.showToast('Eklendi!');
             },
             toggleTask(id) { 
                 const t = this.getActiveData().tasks.find(x => x.id == id); 
@@ -197,199 +182,180 @@
                 this.saveData(); 
             },
 
-            setActiveMember(m) { 
-                this.state.activeMember = m; 
-                this.render(false); 
+            setActiveMember(m) { this.state.activeMember = m; this.render(false); },
+            
+            openEditModal(id) {
+                const data = this.getActiveData();
+                let taskObj = null; let currentOwner = '';
+                for (let m in data.teamTasks) {
+                    const found = data.teamTasks[m].find(t => String(t.id) === String(id));
+                    if (found) { taskObj = found; currentOwner = m; break; }
+                }
+                if (taskObj) {
+                    this.state.editingTask = { ...taskObj, owner: currentOwner };
+                    this.render(false);
+                }
             },
+
+            closeModal() { this.state.editingTask = null; this.render(false); },
+
+            updateTeamTaskFromModal() {
+                const newText = document.getElementById('modalTaskText').value.trim();
+                const newOwner = document.getElementById('modalOwnerSelect').value;
+                if (!newText) return;
+
+                const data = this.getActiveData();
+                const taskId = this.state.editingTask.id;
+
+                for (let m in data.teamTasks) {
+                    data.teamTasks[m] = data.teamTasks[m].filter(t => t.id != taskId);
+                }
+
+                const formatted = `${newOwner.toUpperCase()} - ${newText}`;
+                if (!data.teamTasks[newOwner]) data.teamTasks[newOwner] = [];
+                data.teamTasks[newOwner].unshift({ id: taskId, text: formatted, completed: false });
+                
+                this.state.activeMember = newOwner;
+                this.state.editingTask = null;
+                this.saveData();
+                this.showToast('Güncellendi!');
+            },
+
             addTeamTask() {
                 const input = document.getElementById('newTeamTaskInput');
+                const memberSelect = document.getElementById('teamMemberSelectAdd');
                 if(!input || !input.value.trim()) return;
+                const member = memberSelect.value;
+                const formatted = `${member.toUpperCase()} - ${input.value.trim()}`;
                 const data = this.getActiveData();
-                const formattedText = `${this.state.activeMember.toUpperCase()} - ${input.value.trim()}`;
-                data.teamTasks[this.state.activeMember].unshift({ id: Date.now(), text: formattedText, completed: false });
+                if (!data.teamTasks[member]) data.teamTasks[member] = [];
+                data.teamTasks[member].unshift({ id: Date.now(), text: formatted, completed: false });
+                this.state.activeMember = member;
                 this.saveData();
                 input.value = '';
-                this.showToast('Ekip Görevi Eklendi!');
+                this.showToast('Görevi Atandı!');
             },
             toggleTeamTask(id) { 
-                const t = this.getActiveData().teamTasks[this.state.activeMember].find(x => x.id == id); 
+                const t = (this.getActiveData().teamTasks[this.state.activeMember] || []).find(x => x.id == id); 
                 if(t) t.completed = !t.completed; 
                 this.saveData(); 
             },
             deleteTeamTask(id) { 
-                this.getActiveData().teamTasks[this.state.activeMember] = this.getActiveData().teamTasks[this.state.activeMember].filter(x => x.id != id); 
+                this.getActiveData().teamTasks[this.state.activeMember] = (this.getActiveData().teamTasks[this.state.activeMember] || []).filter(x => x.id != id); 
                 this.saveData(); 
-            },
-
-            addIdea() {
-                const input = document.getElementById('newIdeaInput');
-                if(!input || !input.value.trim()) return;
-                this.getActiveData().contentIdeas.unshift({ id: Date.now(), text: input.value.trim(), completed: false });
-                this.saveData();
-                input.value = '';
-                this.showToast('Fikir Eklendi!');
-            },
-            toggleIdea(id) { const i = this.getActiveData().contentIdeas.find(x => x.id == id); if(i) i.completed = !i.completed; this.saveData(); },
-            deleteIdea(id) { this.getActiveData().contentIdeas = this.getActiveData().contentIdeas.filter(x => x.id != id); this.saveData(); },
-
-            addWeeklyNote() {
-                const input = document.getElementById('newNoteTitleInput');
-                if(!input || !input.value.trim()) return;
-                this.getActiveData().weeklyNotes.unshift({ id: Date.now(), title: input.value.trim(), content: '' });
-                this.saveData();
-                input.value = '';
-                this.showToast('Konu Eklendi!');
-            },
-            updateWeeklyNote(id, val) { 
-                const n = this.getActiveData().weeklyNotes.find(x => x.id == id); 
-                if(n) n.content = val; 
-            },
-            deleteWeeklyNote(id) { 
-                this.getActiveData().weeklyNotes = this.getActiveData().weeklyNotes.filter(x => x.id != id); 
-                this.saveData(); 
-            },
-
-            addAdData() {
-                const d = document.getElementById('adDate').value;
-                const s = document.getElementById('adSpend').value;
-                if(!d || !s) return;
-                this.getActiveData().adsData.push({ id: Date.now(), date: d, spend: parseFloat(s), reach: parseInt(document.getElementById('adReach').value)||0, clicks: parseInt(document.getElementById('adClicks').value)||0 });
-                this.getActiveData().adsData.sort((a,b)=>a.date.localeCompare(b.date));
-                this.saveData();
-                this.showToast('Toplantı Notu Kaydedildi!');
-            },
-            deleteAdData(id) { 
-                this.getActiveData().adsData = this.getActiveData().adsData.filter(x => x.id != id); 
-                this.saveData(); 
-            },
-
-            editMeeting(id) {
-                const m = this.getActiveData().meetings.find(x => x.id == id);
-                if (!m) return;
-                this.state.editMeetingId = m.id;
-                this.render(false);
-                document.getElementById('meetingTitleInput').value = m.title;
-                document.getElementById('meetingContentInput').value = m.content || '';
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            },
-            saveMeeting() {
-                const title = document.getElementById('meetingTitleInput').value.trim() || "Yeni Toplantı";
-                const content = document.getElementById('meetingContentInput').value.trim();
-                const data = this.getActiveData();
-
-                if (this.state.editMeetingId) {
-                    const idx = data.meetings.findIndex(x => x.id == this.state.editMeetingId);
-                    if (idx > -1) data.meetings[idx] = { ...data.meetings[idx], title, content };
-                    this.state.editMeetingId = null;
-                } else {
-                    data.meetings.unshift({ id: Date.now(), title, date: new Intl.DateTimeFormat('tr-TR').format(new Date()), content });
-                }
-                this.saveData();
-                this.showToast('Kaydedildi!');
             },
 
             noteToDaily() {
                 const data = this.getActiveData();
                 const note = data.dashboardNotes.trim();
-                if (!note) { this.showToast('Aktarılacak not yok!'); return; }
-                // Not aktarıldığında her zaman Yüksek Öncelikli (high) olarak gider ve radara girer.
+                if (!note) return;
                 data.tasks.unshift({ id: Date.now(), text: note, completed: false, priority: 'high', dueDate: new Date().toISOString().split('T')[0] });
                 data.dashboardNotes = '';
                 this.saveData();
-                this.showToast('Günlüğe AKTARILDI! 🚀');
-            },
-
-            copySticker(text) {
-                const el = document.createElement('textarea');
-                el.value = text; document.body.appendChild(el);
-                el.select(); document.execCommand('copy');
-                document.body.removeChild(el);
-                this.showToast(`Kopyalandı: ${text}`);
+                this.showToast('Günlüğe Aktarıldı!');
             },
 
             render(withAnim = false) {
                 const root = document.getElementById('app-root');
                 if(!root) return;
-                root.innerHTML = `
+                let html = `
                     ${this.getHTMLHeader()}
                     <div class="${withAnim ? 'view-anim' : ''}">${this.getHTMLView()}</div>
                     ${this.getHTMLFooter()}
                 `;
+                if (this.state.editingTask) html += this.getModalHTML();
+                root.innerHTML = html;
                 lucide.createIcons();
             },
 
+            getModalHTML() {
+                const task = this.state.editingTask;
+                const rawText = task.text.includes(' - ') ? task.text.split(' - ')[1] : task.text;
+                return `
+                <div class="modal-backdrop" onclick="app.closeModal()">
+                    <div class="modal-card" onclick="event.stopPropagation()">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="bg-rose-100 p-3 rounded-2xl text-rose-500"><i data-lucide="edit-3"></i></div>
+                            <h3 class="text-2xl font-black uppercase tracking-tighter">Düzenle</h3>
+                        </div>
+                        <div class="space-y-4">
+                            <div><label class="text-[10px] font-black uppercase text-stone-400 mb-2 block tracking-widest">Sorumlu</label>
+                                <select id="modalOwnerSelect" class="w-full p-3 rounded-xl font-bold bg-stone-50 border-2 border-stone-100 outline-none">
+                                    <option value="Beyza" ${task.owner === 'Beyza' ? 'selected' : ''}>Beyza</option>
+                                    <option value="Zeliha" ${task.owner === 'Zeliha' ? 'selected' : ''}>Zeliha</option>
+                                    <option value="Burak" ${task.owner === 'Burak' ? 'selected' : ''}>Burak</option>
+                                </select>
+                            </div>
+                            <div><label class="text-[10px] font-black uppercase text-stone-400 mb-2 block tracking-widest">Not</label>
+                                <textarea id="modalTaskText" class="w-full p-4 rounded-xl font-bold text-base bg-stone-50 h-32 resize-none shadow-inner outline-none">${rawText}</textarea>
+                            </div>
+                            <div class="flex gap-3 pt-4">
+                                <button onclick="app.closeModal()" class="flex-1 py-3 font-black uppercase text-xs text-stone-400">Vazgeç</button>
+                                <button onclick="app.updateTeamTaskFromModal()" class="flex-[2] bg-rose-500 text-white py-3 rounded-xl font-black uppercase text-xs shadow-lg shadow-rose-200">KAYDET</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            },
+
             getHTMLHeader() {
-                const isDashboard = this.state.currentView === 'dashboard';
                 const parts = this.state.selectedMonth.split('-');
                 const monthName = new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }).format(new Date(parts[0], parts[1]-1));
                 return `
-                <header class="mb-6">
-                    <div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-5 rounded-[2.5rem] shadow-xl border-2 border-stone-100 text-stone-800">
-                        <div class="flex items-center gap-3">
-                            ${!isDashboard ? `<button onclick="app.setView('dashboard')" class="bg-stone-800 text-white p-2.5 rounded-xl hover:scale-110 transition-all shadow-md"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>` : ''}
-                            <div class="bg-rose-400 p-3 rounded-2xl shadow-lg text-white"><i data-lucide="sparkles" class="text-white w-6 h-6"></i></div>
-                            <div><h1 class="text-2xl sm:text-3xl font-black uppercase leading-none tracking-tighter">Notlarım</h1><span class="text-rose-400 text-[9px] font-black uppercase tracking-[0.4em]">${this.state.currentView}</span></div>
+                <header class="mb-8">
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-6 rounded-[2.5rem] shadow-xl border-2 border-stone-100">
+                        <div class="flex items-center gap-4">
+                            ${this.state.currentView !== 'dashboard' ? `<button onclick="app.setView('dashboard')" class="bg-stone-800 text-white p-3 rounded-xl hover:scale-110 transition-all shadow-md"><i data-lucide="arrow-left"></i></button>` : ''}
+                            <div class="bg-rose-400 p-4 rounded-2xl shadow-lg text-white"><i data-lucide="sparkles" size="32"></i></div>
+                            <div><h1 class="text-3xl font-black uppercase leading-none tracking-tighter">Notlarım</h1><span class="text-rose-400 text-[10px] font-black uppercase tracking-widest">${this.state.currentView}</span></div>
                         </div>
-                        <div class="flex items-center gap-4 bg-stone-50 px-5 py-2.5 rounded-2xl border-2 border-stone-100">
-                            <div class="font-black text-2xl flex items-center gap-2"><i data-lucide="clock" class="text-rose-400 w-4 h-4"></i><span id="liveClock">--:--</span></div>
+                        <div class="font-black text-2xl bg-stone-50 px-8 py-3 rounded-2xl border-2 border-stone-100 flex items-center gap-3">
+                            <i data-lucide="clock" class="text-rose-400 w-6 h-6"></i><span id="liveClock">--:--</span>
                         </div>
                     </div>
-                    <div class="mt-4 flex flex-col sm:flex-row items-center justify-between bg-white px-6 py-4 rounded-[2rem] shadow-sm border-b-4 border-rose-200 gap-4">
-                        <div class="flex items-center gap-2 text-stone-400"><i data-lucide="calendar" class="w-4 h-4"></i><span class="text-[10px] font-black uppercase tracking-widest">Dönem Seçimi:</span></div>
+                    <div class="mt-4 flex flex-col sm:flex-row items-center justify-between bg-white px-6 py-4 rounded-[2rem] shadow-sm border-b-4 border-rose-200 gap-4 text-stone-800">
                         <div class="flex items-center gap-4">
-                            <button onclick="app.handleMonthChange('prev')" class="bg-stone-100 p-2 rounded-lg hover:bg-rose-50"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
-                            <div class="text-lg font-black text-stone-700 min-w-[150px] text-center uppercase tracking-tight">${monthName}</div>
-                            <button onclick="app.handleMonthChange('next')" class="bg-stone-100 p-2 rounded-lg hover:bg-rose-50"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                            <button onclick="app.handleMonthChange('prev')" class="bg-stone-100 p-2 rounded-lg hover:bg-rose-50 transition-colors"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                            <div class="text-xl font-black min-w-[150px] text-center uppercase tracking-tight">${monthName}</div>
+                            <button onclick="app.handleMonthChange('next')" class="bg-stone-100 p-2 rounded-lg hover:bg-rose-50 transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
                         </div>
+                        <div class="text-[9px] font-black uppercase text-stone-300 tracking-[0.3em] flex items-center gap-2 animate-pulse"><div class="w-2 h-2 bg-emerald-400 rounded-full"></div> CANLI BAĞLANTI</div>
                     </div>
                 </header>`;
             },
 
-            getHTMLFooter() { return `<footer class="mt-10 text-center opacity-20 font-black text-[9px] uppercase tracking-[0.8em] pb-6">PRO NUDE SERIES • ${this.state.selectedMonth}</footer>`; },
+            getHTMLFooter() { return `<footer class="mt-12 text-center opacity-20 font-black text-[9px] uppercase tracking-[0.5em] pb-10">PRO NUDE EDITION • ${this.state.selectedMonth}</footer>`; },
 
             getHTMLView() {
                 const data = this.getActiveData();
                 const todayStr = new Date().toISOString().split('T')[0];
 
                 if (this.state.currentView === 'dashboard') {
-                    // ACİL RADARI: SADECE YÜKSEK ÖNCELİKLİ (high) GÜNLÜK GÖREVLER. 
-                    // İsteğin üzerine Orta ve Düşük olanlar ve Ekip görevleri burada görünmez.
                     const urgents = data.tasks.filter(t => !t.completed && t.priority === 'high');
-
-                    const cards = [
-                        { id: 'daily', icon: 'list-todo', label: 'GÜNLÜK', colors: 'from-rose-300 to-orange-200' },
-                        { id: 'weekly', icon: 'calendar', label: 'HAFTALIK', colors: 'from-orange-200 to-amber-200' },
-                        { id: 'meeting', icon: 'mic', label: 'TOPLANTI', colors: 'from-pink-300 to-rose-200' },
-                        { id: 'team', icon: 'users', label: 'EKİP', colors: 'from-rose-400 to-pink-300' },
-                        { id: 'ideas', icon: 'lightbulb', label: 'FİKİRLER', colors: 'from-amber-200 to-orange-300' },
-                        { id: 'analytics', icon: 'trending-up', label: 'ANALİZ', colors: 'from-stone-400 to-rose-300' },
-                        { id: 'stickers', icon: 'smile', label: 'STICKER', colors: 'from-pink-200 to-orange-200' }
+                    const menu = [
+                        { id: 'daily', icon: 'list-todo', label: 'GÜNLÜK', color: 'from-blue-300 to-cyan-200' },
+                        { id: 'weekly', icon: 'calendar', label: 'HAFTALIK', color: 'from-emerald-300 to-teal-200' },
+                        { id: 'team', icon: 'user-plus', label: 'EKİP', color: 'from-rose-400 to-pink-300' },
+                        { id: 'ideas', icon: 'lightbulb', label: 'FİKİRLER', color: 'from-orange-300 to-amber-200' },
+                        { id: 'analytics', icon: 'trending-up', label: 'ANALİZ', color: 'from-indigo-300 to-purple-200' },
+                        { id: 'stickers', icon: 'smile', label: 'STICKER', color: 'from-yellow-200 to-rose-200' }
                     ];
 
                     return `
-                    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-                        ${cards.map(c => `<div onclick="app.setView('${c.id}')" class="group bg-gradient-to-br ${c.colors} p-5 rounded-[1.8rem] shadow-lg hover:scale-105 cursor-pointer relative overflow-hidden text-stone-800 transition-all"><i data-lucide="${c.icon}" class="w-12 h-12 absolute -right-2 -top-2 opacity-10"></i><div class="bg-white/30 w-8 h-8 rounded-xl flex items-center justify-center mb-2"><i data-lucide="${c.icon}" class="w-4 h-4"></i></div><h2 class="text-[10px] font-black uppercase tracking-widest">${c.label}</h2></div>`).join('')}
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                        ${menu.map(c => `<div onclick="app.setView('${c.id}')" class="group bg-gradient-to-br ${c.color} p-6 rounded-[2rem] shadow-lg hover:scale-105 cursor-pointer relative overflow-hidden transition-all text-stone-800"><i data-lucide="${c.icon}" class="w-12 h-12 absolute -right-2 -top-2 opacity-10"></i><div class="bg-white/40 w-8 h-8 rounded-xl flex items-center justify-center mb-2"><i data-lucide="${c.icon}" class="w-4 h-4"></i></div><h2 class="text-[10px] font-black uppercase tracking-widest">${c.label}</h2></div>`).join('')}
                     </div>
                     <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border-4 border-stone-800 h-fit">
+                        <div class="bg-white p-8 rounded-[3rem] shadow-xl border-4 border-stone-800 h-fit">
                             <h3 class="text-xl font-black text-stone-800 mb-6 uppercase tracking-tighter flex items-center gap-2"><i data-lucide="bell" class="text-rose-400 w-5 h-5"></i> Acil Radarı</h3>
-                            <div class="space-y-3 max-h-[250px] overflow-y-auto pr-2">
-                                ${urgents.length === 0 ? '<p class="text-stone-300 italic text-sm text-center py-4">🕊️ Şu an acil bir iş görünmüyor.</p>' : urgents.map(r => `
-                                    <div class="bg-rose-50 p-4 rounded-2xl border-2 border-rose-100 flex justify-between items-center transition-all hover:bg-white shadow-sm">
-                                        <span class="font-bold text-sm text-stone-700 leading-tight pr-4">${r.text}</span>
-                                        <span class="bg-rose-500 text-white px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest whitespace-nowrap">KRİTİK</span>
-                                    </div>`).join('')}
+                            <div class="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                                ${urgents.length === 0 ? '<p class="text-stone-300 italic text-sm text-center py-6">🕊️ Bugün her şey kontrol altında.</p>' : urgents.map(r => `<div class="bg-rose-50 p-5 rounded-2xl border-2 border-rose-100 flex justify-between items-center shadow-sm"><span class="font-bold text-sm text-stone-700 leading-tight pr-4">${r.text}</span><span class="bg-rose-500 text-white px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest whitespace-nowrap">ACİL</span></div>`).join('')}
                             </div>
                         </div>
-                        <div class="bg-stone-800 p-8 rounded-[2.5rem] text-white relative flex flex-col card-shadow">
-                            <div class="flex items-center justify-between mb-5">
-                                <h3 class="text-xl font-black text-rose-300 uppercase tracking-tighter">Hızlı Not Defteri</h3>
-                                <div class="text-[8px] font-black text-stone-500 uppercase tracking-widest animate-pulse">2sn Senk.</div>
-                            </div>
-                            <textarea id="dashboardNotesInput" oninput="app.getActiveData().dashboardNotes = this.value; app.saveData(false);" class="w-full bg-white/5 border-2 border-stone-600 rounded-[1.5rem] p-5 text-lg min-h-[200px] outline-none text-white shadow-inner" placeholder="Bugünkü stratejilerini buraya dök...">${data.dashboardNotes || ''}</textarea>
-                            <div class="mt-4 flex justify-end">
-                                <button onclick="app.noteToDaily();" class="bg-rose-400 text-white px-8 py-2.5 rounded-2xl font-black text-xs hover:bg-rose-500 shadow-xl transition-all uppercase tracking-widest">Günlüğe Aktar</button>
-                            </div>
+                        <div class="bg-stone-800 p-8 rounded-[3rem] text-white relative flex flex-col card-shadow">
+                            <h3 class="text-xl font-black text-rose-300 mb-5 uppercase tracking-tighter">Hızlı Not Defteri</h3>
+                            <textarea id="dashboardNotesInput" oninput="app.getActiveData().dashboardNotes = this.value; app.saveData(false);" class="w-full bg-white/5 border-2 border-stone-600 rounded-[1.5rem] p-5 text-xl min-h-[220px] outline-none text-white shadow-inner font-bold" placeholder="Bugünkü stratejilerini buraya dök...">${data.dashboardNotes || ''}</textarea>
+                            <div class="mt-4 flex justify-end"><button onclick="app.noteToDaily();" class="bg-rose-400 text-white px-10 py-3 rounded-2xl font-black text-xs hover:bg-rose-500 shadow-xl transition-all uppercase tracking-widest">Günlüğe Aktar</button></div>
                         </div>
                     </div>`;
                 }
@@ -398,16 +364,16 @@
                     return `
                     <div class="bg-white p-6 sm:p-10 rounded-[3rem] shadow-2xl border-4 border-rose-100 min-h-[600px]">
                         <h2 class="text-2xl sm:text-3xl font-black text-stone-800 mb-8 uppercase tracking-tighter">GÜNLÜK PLAN</h2>
-                        <div class="flex flex-col md:flex-row gap-4 mb-10 bg-rose-50 p-6 rounded-[2rem] border-2 border-rose-100">
-                            <input type="text" id="newTaskInput" placeholder="Sıradaki iş nedir?" class="flex-1 p-4 rounded-xl font-bold text-stone-800 shadow-sm" />
+                        <div class="flex flex-col md:flex-row gap-4 mb-10 bg-rose-50 p-6 rounded-[2rem] border-2 border-rose-100 shadow-inner">
+                            <input type="text" id="newTaskInput" placeholder="Ne yapıyoruz?" class="flex-1 p-4 rounded-xl font-bold" />
                             <div class="flex gap-3">
-                                <select id="newTaskPriority" class="flex-1 p-4 rounded-xl font-black text-rose-500 bg-white shadow-sm"><option value="high">🔥 YÜKSEK</option><option value="medium" selected>⚡ ORTA</option><option value="low">☘️ DÜŞÜK</option></select>
-                                <input type="date" id="newTaskDate" value="${todayStr}" class="flex-1 p-4 rounded-xl font-bold text-stone-500 bg-white shadow-sm" />
+                                <select id="newTaskPriority" class="flex-1 p-4 rounded-xl font-black text-rose-500 bg-white"><option value="high">🔥 YÜKSEK</option><option value="medium" selected>⚡ ORTA</option><option value="low">☘️ DÜŞÜK</option></select>
+                                <input type="date" id="newTaskDate" value="${todayStr}" class="flex-1 p-4 rounded-xl font-bold text-stone-500 bg-white" />
                             </div>
                             <button onclick="app.addTask()" class="w-full md:w-auto bg-rose-400 text-white p-4 px-10 rounded-xl hover:bg-rose-500 shadow-lg font-black uppercase text-sm tracking-widest">EKLE</button>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            ${data.tasks.map(t => `<div class="p-5 rounded-2xl border-2 flex items-center gap-4 transition-all ${t.completed ? 'opacity-40 grayscale bg-stone-50' : 'bg-white border-stone-100 shadow-sm'} card-hover"><button onclick="app.toggleTask(${t.id})">${t.completed ? '<i data-lucide="check-circle-2" class="text-rose-400 w-7 h-7"></i>' : '<i data-lucide="circle" class="text-stone-200 w-7 h-7"></i>'}</button><span class="flex-1 font-bold ${t.completed ? 'line-through text-stone-400 italic' : 'text-stone-800'}">${t.text}</span><button onclick="app.deleteTask(${t.id})" class="text-stone-200 hover:text-rose-400"><i data-lucide="trash-2" class="w-5 h-5"></i></button></div>`).join('')}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-stone-800 font-bold">
+                            ${data.tasks.map(t => `<div class="p-5 bg-white border-2 border-rose-50 rounded-2xl flex items-center gap-4 transition-all ${t.completed ? 'opacity-40 grayscale bg-stone-50 border-transparent' : 'shadow-sm'} card-hover"><button onclick="app.toggleTask(${t.id})">${t.completed ? '<i data-lucide="check-circle-2" class="text-rose-400 w-7 h-7"></i>' : '<i data-lucide="circle" class="text-stone-100 w-7 h-7"></i>'}</button><span class="flex-1 ${t.completed ? 'line-through text-stone-300 italic' : ''}">${t.text}</span><button onclick="app.deleteTask(${t.id})" class="text-stone-200 hover:text-rose-400"><i data-lucide="trash-2"></i></button></div>`).join('')}
                         </div>
                     </div>`;
                 }
@@ -416,42 +382,35 @@
                     return `
                     <div class="bg-white p-6 sm:p-10 rounded-[3rem] shadow-2xl border-4 border-pink-100 min-h-[600px]">
                         <h2 class="text-2xl sm:text-3xl font-black text-stone-800 mb-8 uppercase tracking-tighter">EKİP YÖNETİMİ</h2>
-                        <div class="flex flex-wrap gap-2 mb-8 bg-stone-50 p-2.5 rounded-2xl w-fit border-2 border-stone-100 text-stone-800 font-bold">
-                            ${['Beyza', 'Zeliha', 'Burak'].map(m => `<button onclick="app.setActiveMember('${m}')" class="px-6 py-3 rounded-xl uppercase text-[10px] tracking-[0.2em] ${this.state.activeMember === m ? 'bg-pink-400 text-white shadow-lg scale-105 font-black' : 'text-stone-400 bg-white'} transition-all">${m}</button>`).join('')}
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-stone-800">
-                            <div class="bg-stone-50 p-8 rounded-[2.5rem] border-2 border-stone-100 h-fit shadow-inner">
-                                <h3 class="font-black text-pink-500 mb-4 text-xs uppercase tracking-widest">YENİ ATAMA: ${this.state.activeMember.toUpperCase()}</h3>
-                                <input type="text" id="newTeamTaskInput" placeholder="Görev metni..." class="w-full p-4 rounded-xl outline-none font-bold text-sm mb-4 border-2 border-transparent focus:border-pink-200 shadow-sm" />
-                                <button onclick="app.addTeamTask()" class="w-full bg-pink-400 text-white py-3.5 rounded-xl font-black uppercase text-xs shadow-md hover:bg-pink-500 transition-all">GÖREVİ TANIMLA</button>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div class="lg:col-span-1 space-y-6 text-stone-800">
+                                <div class="bg-stone-50 p-8 rounded-[2.5rem] border-2 border-stone-100 shadow-inner">
+                                    <h3 class="font-black text-pink-500 mb-4 text-xs uppercase tracking-widest">YENİ GÖREV ATA</h3>
+                                    <div class="space-y-4 font-bold">
+                                        <select id="teamMemberSelectAdd" class="w-full p-4 rounded-2xl font-bold bg-white outline-none border-2 border-stone-50 shadow-sm">
+                                            <option value="Beyza">Beyza</option><option value="Zeliha">Zeliha</option><option value="Burak">Burak</option>
+                                        </select>
+                                        <textarea id="newTeamTaskInput" placeholder="İşi detaylandır..." class="w-full p-4 rounded-2xl outline-none border-2 border-transparent h-32 resize-none shadow-sm"></textarea>
+                                        <button onclick="app.addTeamTask()" class="w-full bg-pink-400 text-white py-4 rounded-2xl font-black uppercase text-xs shadow-md shadow-pink-100 hover:bg-pink-500 transition-all">SİSTEME KAYDET</button>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="space-y-3">
-                                <h3 class="font-black text-stone-300 text-[10px] uppercase tracking-widest mb-2 px-2">GÜNCEL LİSTE</h3>
-                                ${data.teamTasks[this.state.activeMember].map(t => `<div class="p-4 bg-white border-2 border-pink-50 rounded-2xl flex items-center gap-4 text-sm font-bold shadow-sm transition-all hover:border-pink-200"><button onclick="app.toggleTeamTask(${t.id})">${t.completed ? '<i data-lucide="check-circle-2" class="text-emerald-400 w-6 h-6"></i>' : '<i data-lucide="circle" class="text-stone-200 w-6 h-6"></i>'}</button><span class="flex-1 ${t.completed ? 'line-through text-stone-300 italic' : ''}">${t.text}</span><button onclick="app.deleteTeamTask(${t.id})"><i data-lucide="trash-2" class="w-4 h-4 text-stone-200 hover:text-rose-400"></i></button></div>`).join('')}
-                            </div>
-                        </div>
-                    </div>`;
-                }
-
-                if (this.state.currentView === 'analytics') {
-                    const maxS = Math.max(...data.adsData.map(d=>d.spend), 1);
-                    return `
-                    <div class="bg-white p-6 sm:p-10 rounded-[3rem] shadow-2xl border-4 border-stone-200 min-h-[600px]">
-                        <h2 class="text-2xl sm:text-3xl font-black text-stone-800 mb-8 uppercase tracking-tighter">REKLAM ANALİZİ</h2>
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 text-stone-800">
-                            <div class="bg-stone-50 p-6 rounded-[2rem] space-y-3 h-fit border-2 border-stone-100 shadow-inner">
-                                <input type="text" id="adDate" placeholder="Tarih (Örn: 14.04)" class="w-full p-3.5 rounded-xl text-sm font-bold text-stone-700" />
-                                <input type="number" id="adSpend" placeholder="Harcama (TL)" class="w-full p-3.5 rounded-xl text-sm font-bold text-stone-700" />
-                                <input type="number" id="adReach" placeholder="Erişim" class="w-full p-3.5 rounded-xl text-sm font-bold text-stone-700" />
-                                <input type="number" id="adClicks" placeholder="Tıklama" class="w-full p-3.5 rounded-xl text-sm font-bold text-stone-700" />
-                                <button onclick="app.addAdData()" class="w-full bg-stone-800 text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest shadow-lg hover:bg-stone-700">VERİYİ GRAFİĞE EKLE</button>
-                            </div>
-                            <div class="lg:col-span-2 bg-stone-800 p-8 rounded-[2.5rem] flex flex-col min-h-[350px] relative overflow-hidden">
-                                <h3 class="text-rose-300 font-black text-[10px] uppercase mb-10 tracking-[0.4em] text-center border-b border-white/10 pb-4">Bütçe / Zaman Grafiği</h3>
-                                <div class="flex-1 flex items-end gap-2 border-b-2 border-stone-700 pb-3 overflow-x-auto min-h-[180px]">
-                                    ${data.adsData.map(d => `<div class="flex-1 bg-gradient-to-t from-rose-400 to-rose-300 rounded-t-lg min-w-[28px] hover:scale-110 transition-transform cursor-help relative group" style="height: ${(d.spend/maxS)*150}px">
-                                        <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white text-stone-800 text-[8px] p-2 rounded shadow-xl opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none font-bold z-10 border border-rose-100">${d.date}: ${d.spend} TL</div>
-                                    </div>`).join('')}
+                            <div class="lg:col-span-2 space-y-4">
+                                <div class="flex items-center justify-between px-2">
+                                    <h3 class="font-black text-stone-300 text-[11px] uppercase tracking-[0.3em]">TAKİP ÇİZELGESİ</h3>
+                                    <div class="flex gap-2">
+                                        ${['Beyza', 'Zeliha', 'Burak'].map(m => `<button onclick="app.setActiveMember('${m}')" class="px-5 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${this.state.activeMember === m ? 'bg-pink-400 text-white shadow-md' : 'bg-white border-2 border-pink-50 text-stone-300'}">${m}</button>`).join('')}
+                                    </div>
+                                </div>
+                                <div class="space-y-3 min-h-[400px]">
+                                    ${(data.teamTasks[this.state.activeMember] || []).length === 0 ? 
+                                        '<div class="flex items-center justify-center h-48 bg-stone-50 rounded-[2rem] border-2 border-dashed border-stone-100 text-stone-300 italic text-sm">Görev listesi boş.</div>' : 
+                                        data.teamTasks[this.state.activeMember].map(t => `
+                                        <div onclick="app.openEditModal('${t.id}')" class="p-5 bg-white border-2 border-pink-50 rounded-[1.8rem] flex items-center gap-4 text-sm font-bold shadow-sm task-item group">
+                                            <button onclick="event.stopPropagation(); app.toggleTeamTask('${t.id}')" class="active:scale-125 transition-transform">${t.completed ? '<i data-lucide="check-circle-2" class="text-emerald-400 w-7 h-7"></i>' : '<i data-lucide="circle" class="text-stone-100 w-7 h-7"></i>'}</button>
+                                            <span class="flex-1 ${t.completed ? 'line-through text-stone-300 italic' : 'text-stone-800'} leading-relaxed">${t.text}</span>
+                                            <button onclick="event.stopPropagation(); app.deleteTeamTask('${t.id}')"><i data-lucide="trash-2" class="w-5 h-5 text-stone-200 hover:text-rose-400 transition-colors"></i></button>
+                                        </div>`).join('')}
                                 </div>
                             </div>
                         </div>
@@ -463,76 +422,16 @@
                     <div class="bg-white p-6 sm:p-10 rounded-[3rem] shadow-2xl border-4 border-orange-100 min-h-[600px]">
                         <h2 class="text-2xl sm:text-3xl font-black text-stone-800 mb-8 uppercase tracking-tighter text-center">İÇERİK FİKİRLERİ</h2>
                         <div class="bg-orange-50 p-6 rounded-[2rem] flex flex-col sm:flex-row gap-4 mb-8 border-2 border-orange-100">
-                            <input type="text" id="newIdeaInput" placeholder="Yeni fikrini buraya bırak..." class="flex-1 p-4 rounded-xl font-bold text-stone-800 shadow-sm" />
-                            <button onclick="app.addIdea()" class="bg-orange-400 text-white px-10 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-500 shadow-md">FİKRİ EKLE</button>
+                            <input type="text" id="newIdeaInput" placeholder="Aklındaki fikri yaz..." class="flex-1 p-4 rounded-xl font-bold text-stone-800 shadow-sm" />
+                            <button onclick="app.addIdea()" class="bg-orange-400 text-white px-10 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-500 shadow-md transition-all">EKLE</button>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-stone-800 font-bold">
-                            ${data.contentIdeas.map(i => `<div class="p-5 bg-white border-2 border-orange-50 rounded-2xl flex items-center gap-4 shadow-sm"><button onclick="app.toggleIdea(${i.id})">${i.completed ? '<i data-lucide="check-circle-2" class="text-orange-400"></i>' : '<i data-lucide="circle" class="text-stone-200"></i>'}</button><span class="flex-1 ${i.completed ? 'line-through text-stone-300 italic' : ''}">${i.text}</span><button onclick="app.deleteIdea(${i.id})"><i data-lucide="trash-2" class="text-stone-200 hover:text-rose-400"></i></button></div>`).join('')}
+                            ${data.contentIdeas.map(i => `<div class="p-5 bg-white border-2 border-orange-50 rounded-2xl flex items-center gap-4 shadow-sm transition-all hover:border-orange-200"><button onclick="app.toggleIdea(${i.id})">${i.completed ? '<i data-lucide="check-circle-2" class="text-orange-400"></i>' : '<i data-lucide="circle" class="text-stone-100"></i>'}</button><span class="flex-1 ${i.completed ? 'line-through text-stone-300 italic' : ''}">${i.text}</span><button onclick="app.deleteIdea(${i.id})"><i data-lucide="trash-2" class="text-stone-200 hover:text-rose-400"></i></button></div>`).join('')}
                         </div>
                     </div>`;
                 }
 
-                if (this.state.currentView === 'weekly') {
-                    return `
-                    <div class="bg-white p-6 sm:p-10 rounded-[3rem] shadow-2xl border-4 border-emerald-100 min-h-[600px]">
-                        <h2 class="text-2xl sm:text-3xl font-black text-stone-800 mb-8 uppercase tracking-tighter text-center">HAFTALIK KONULAR</h2>
-                        <div class="bg-emerald-50 p-6 rounded-[2rem] flex flex-col sm:flex-row gap-4 mb-8 border-2 border-emerald-100 shadow-inner">
-                            <input type="text" id="newNoteTitleInput" placeholder="Bu haftanın konusu nedir?.." class="flex-1 p-4 rounded-xl font-bold text-stone-800 shadow-sm" />
-                            <button onclick="app.addWeeklyNote()" class="bg-emerald-400 text-white px-10 py-4 rounded-xl font-black text-xs uppercase hover:bg-emerald-500 shadow-md">OLUŞTUR</button>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            ${data.weeklyNotes.map(n => `<div class="p-6 bg-stone-50 rounded-[2.5rem] border-2 border-emerald-50 shadow-sm relative transition-all hover:border-emerald-200"><div class="flex justify-between items-center mb-4 px-2"><h3 class="font-black text-stone-800 uppercase text-sm tracking-tight">${n.title}</h3><button onclick="app.deleteWeeklyNote(${n.id})" class="text-stone-300 hover:text-rose-400"><i data-lucide="trash-2" class="w-5 h-5"></i></button></div><textarea oninput="app.updateWeeklyNote(${n.id}, this.value)" class="w-full bg-white p-4 rounded-2xl border-2 border-transparent shadow-inner h-28 text-sm text-stone-700 font-bold focus:border-emerald-200" placeholder="İçeriği buraya dök...">${n.content || ''}</textarea><div class="flex justify-end mt-4 px-2"><button onclick="app.saveData(); app.showToast('Başarıyla Kaydedildi!');" class="bg-emerald-400 text-white px-6 py-2 rounded-xl text-[9px] font-black uppercase shadow-md hover:bg-emerald-500 transition-all">GÜNCELLE</button></div></div>`).join('')}
-                        </div>
-                    </div>`;
-                }
-
-                if (this.state.currentView === 'meeting') {
-                    return `
-                    <div class="bg-white p-6 sm:p-10 rounded-[3.5rem] border-4 border-pink-100 shadow-2xl min-h-[600px]">
-                        <h2 class="text-2xl sm:text-3xl font-black text-stone-800 mb-8 uppercase tracking-tighter">TOPLANTI ODASI</h2>
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 text-stone-800">
-                            <div class="lg:col-span-2 space-y-5">
-                                <input id="meetingTitleInput" type="text" placeholder="Gündem Başlığı..." class="w-full text-xl font-black text-rose-400 outline-none bg-transparent border-b-2 border-rose-100 focus:border-rose-400 transition-all pb-2 font-black uppercase" />
-                                <textarea id="meetingContentInput" class="w-full h-72 bg-stone-50 border-2 border-stone-100 p-5 rounded-[1.5rem] outline-none font-bold text-stone-700 shadow-inner resize-none focus:border-rose-200 text-sm" placeholder="Toplantıda alınan kararlar, notlar..."></textarea>
-                                <div class="flex gap-4">
-                                    <button onclick="app.saveMeeting()" class="flex-1 bg-rose-400 text-white py-4 rounded-2xl font-black uppercase shadow-lg hover:bg-rose-500 text-sm transition-all tracking-widest">
-                                        ${this.state.editMeetingId ? 'GÜNCELLEMEYİ KAYDET' : 'NOTU ARŞİVELE'}
-                                    </button>
-                                    ${this.state.editMeetingId ? `<button onclick="app.setView('meeting')" class="px-6 bg-stone-100 text-stone-400 font-bold text-[10px] uppercase rounded-2xl hover:bg-stone-200">İPTAL</button>` : ''}
-                                </div>
-                            </div>
-                            <div class="space-y-4">
-                                <h3 class="text-[9px] font-black text-stone-300 uppercase tracking-widest mb-2 text-center border-b-2 border-pink-50 pb-2">ARŞİVLENMİŞ TOPLANTILAR</h3>
-                                <div class="max-h-[400px] overflow-y-auto pr-1 space-y-3">
-                                    ${data.meetings.length === 0 ? '<p class="text-stone-300 italic text-[10px] text-center mt-4">Henüz kayıtlı not yok.</p>' : data.meetings.map(m => `
-                                        <div onclick='app.editMeeting(${m.id})' class="p-5 bg-pink-50 rounded-2xl border-2 ${this.state.editMeetingId == m.id ? 'border-rose-400 scale-[1.02] font-black shadow-md' : 'border-pink-100'} hover:border-rose-300 cursor-pointer shadow-sm group transition-all">
-                                            <div class="flex justify-between items-center mb-1.5"><div class="text-[7px] font-black text-rose-300 uppercase">${m.date}</div><i data-lucide="edit-3" class="w-3 h-3 text-rose-300 opacity-0 group-hover:opacity-100 transition-opacity"></i></div>
-                                            <h4 class="font-black text-xs leading-tight text-stone-800 uppercase tracking-tight">${m.title}</h4>
-                                            <div class="mt-2 text-[8px] text-stone-400 line-clamp-2 italic font-bold leading-relaxed">${m.content || 'İçerik boş...'}</div>
-                                        </div>`).join('')}
-                                </div>
-                            </div>
-                        </div>
-                    </div>`;
-                }
-
-                if (this.state.currentView === 'stickers') {
-                    return `
-                    <div class="bg-white p-6 sm:p-10 rounded-[3.5rem] border-4 border-pink-100 shadow-2xl">
-                        <h2 class="text-2xl sm:text-3xl font-black text-stone-800 mb-10 uppercase text-center tracking-tighter">STICKER & EMOJI KÜTÜPHANESİ</h2>
-                        <div class="space-y-8">
-                            ${Object.entries(stickersData).map(([cat, items]) => `
-                                <div class="bg-stone-50 p-5 sm:p-8 rounded-[2.5rem] border-2 border-stone-100 shadow-sm">
-                                    <h3 class="text-[8px] font-black text-rose-400 mb-5 uppercase tracking-[0.3em] bg-white px-4 py-1.5 rounded-full border-2 border-rose-50 inline-block shadow-sm">${cat === 'business' ? 'İŞ DÜNYASI' : cat.toUpperCase()}</h3>
-                                    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-                                        ${items.map(item => `<button onclick="app.copySticker('${item}')" class="bg-white p-4 rounded-2xl border-2 border-stone-100 font-black hover:border-rose-300 hover:scale-110 transition-all text-stone-600 shadow-sm ${cat === 'emoji' ? 'text-3xl' : 'text-[10px] leading-tight'}">${item}</button>`).join('')}
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>`;
-                }
-                return `<div class="p-20 text-center font-black opacity-10 uppercase tracking-widest text-stone-400">YÜKLENİYOR...</div>`;
+                return `<div class="p-20 text-center font-black opacity-10 uppercase tracking-widest text-stone-400">MOD YÜKLENİYOR...</div>`;
             }
         };
 
