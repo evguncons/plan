@@ -10,13 +10,13 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body {
-            /* Soft toz pembe zemin ve çok hafif çizgisel (çapraz) şekiller */
+            /* Soft toz pembe zemin ve ince çizgisel desen (çapraz çizgiler) */
             background-color: #fdfafb;
             background-image: 
-                repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(228, 196, 204, 0.4) 20px, rgba(228, 196, 204, 0.4) 21px),
-                repeating-linear-gradient(-45deg, transparent, transparent 20px, rgba(228, 196, 204, 0.4) 20px, rgba(228, 196, 204, 0.4) 21px);
+                repeating-linear-gradient(45deg, transparent, transparent 15px, rgba(228, 196, 204, 0.3) 15px, rgba(228, 196, 204, 0.3) 16px),
+                repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(228, 196, 204, 0.3) 15px, rgba(228, 196, 204, 0.3) 16px);
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            color: #44403c; /* stone-700, sıcak ve yumuşak koyu ton */
+            color: #292524; /* stone-800, sıcak koyu ton */
         }
         
         /* Custom Scrollbar for inner areas */
@@ -53,17 +53,20 @@
     </div>
 
     <!-- Feedback Toast -->
-    <div id="copyFeedback" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 bg-stone-700 text-white px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-4 border-2 border-pink-300 opacity-0 pointer-events-none transition-opacity duration-300">
-        <i data-lucide="check" class="text-pink-300 w-6 h-6"></i>
+    <div id="copyFeedback" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 bg-stone-800 text-white px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-4 border-2 border-rose-300 opacity-0 pointer-events-none transition-opacity duration-300">
+        <i data-lucide="check" class="text-rose-300 w-6 h-6"></i>
         <span id="copyFeedbackText" class="font-black uppercase tracking-widest text-sm">Kopyalandı!</span>
     </div>
 
     <script>
+        // --- GOOGLE APPS SCRIPT BAĞLANTISI ---
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzgbQP7Cy_1juLVyayYn_9qHCVY3vDnaLFNdnGWUAjMe-zSaPY3Ws4M4wcVBBWxgT636A/exec";
+
         // --- STICKER VE EMOJI KÜTÜPHANESİ ---
         const stickersData = {
             motivasyon: [
-                "🌸 YAPABİLİRSİN!", "✨ PARLA!", "⭐️ GÜNÜN YILDIZI", "🎀 PES ETME", "🩰 ŞAMPİYON",
-                "🕊️ ADIM ADIM", "☕️ FULL ENERJİ", "🎯 ODAKLAN", "💎 DEĞERLİSİN", "🦢 İLHAM VER"
+                "🔥 YAPABİLİRSİN!", "🚀 UÇUŞA GEÇ", "⭐️ GÜNÜN YILDIZI", "🌈 PES ETME", "💪 ŞAMPİYON",
+                "✨ PARLA!", "⚡️ FULL ENERJİ", "🎯 ODAKLAN", "💎 DEĞERLİSİN", "🏆 ZAFER YAKIN"
             ],
             is_dunyasi: [
                 "💼 TOPLANTIDA", "⏳ DEADLINE!", "☕️ KAHVE MOLASI", "✅ ONAYLANDI", "📝 NOT ALINDI",
@@ -74,9 +77,9 @@
                 "🔋 PİL BİTTİ", "🥳 PARTİ ZAMANI", "🤫 ÇAKTIRMA", "🌪️ ORTALIK KARIŞIK", "🫠 ERİDİM"
             ],
             emojiler: [
-                "🌸", "🎀", "🩰", "🦢", "🕊️", "☁️", "☕️", "🧸", "✨", "🤍",
-                "💌", "🪄", "🌷", "🍓", "🪴", "🌿", "🥂", "🎬", "🎨", "🎭",
-                "💡", "💰", "💎", "🤝", "💪", "🌈", "🎉", "🍕", "💻", "✅"
+                "😀", "😂", "🥰", "😎", "🤩", "🥳", "🤯", "🥵", "🥶", "🧐",
+                "🚀", "🔥", "⚡️", "✨", "🌟", "💯", "✅", "📍", "⏰", "🎯",
+                "💡", "💰", "💎", "🤝", "💪", "🌈", "🎉", "🍕", "☕️", "💻"
             ]
         };
 
@@ -94,7 +97,8 @@
             
             timers: {
                 clock: null,
-                record: null
+                record: null,
+                sync: null // API çağrılarını limitlemek (debounce) için
             },
 
             init() {
@@ -103,11 +107,11 @@
                 
                 // Varsayılan Ay Verisi
                 this.state.archive[this.state.selectedMonth] = this.createEmptyMonth();
-                this.state.archive[this.state.selectedMonth].tasks.push({ id: Date.now(), text: 'Yeni ayı planla! ✨', description: 'Hedefleri belirle ve ekibe ata.', completed: false, priority: 'high', dueDate: this.state.selectedMonth + '-01' });
+                this.state.archive[this.state.selectedMonth].tasks.push({ id: Date.now(), text: 'Yeni ayı planla! 🚀', description: 'Hedefleri belirle ve ekibe ata.', completed: false, priority: 'high', dueDate: this.state.selectedMonth + '-01' });
                 this.state.archive[this.state.selectedMonth].teamTasks.Beyza.push({ id: 101, text: 'Tasarım trendlerini incele', description: '', completed: false });
                 this.state.archive[this.state.selectedMonth].teamTasks.Zeliha.push({ id: 201, text: 'Ay sonu raporu hazırlığı', description: '', completed: false });
-                this.state.archive[this.state.selectedMonth].teamTasks.Burak.push({ id: 301, text: 'Sistem kontrolü', description: '', completed: true });
-                this.state.archive[this.state.selectedMonth].contentIdeas.push({ id: 401, text: 'Estetik ofis vlogu', description: 'Soft tonlarda çalışma ortamı videosu kurgulanacak.', completed: false });
+                this.state.archive[this.state.selectedMonth].teamTasks.Burak.push({ id: 301, text: 'Sunucu bakımı', description: '', completed: true });
+                this.state.archive[this.state.selectedMonth].contentIdeas.push({ id: 401, text: 'Yapay Zeka trendleri videosu', description: 'Gelecek 5 yılın teknolojileri üzerine bir içerik kurgulanacak.', completed: false });
                 this.state.archive[this.state.selectedMonth].weeklyNotes.push({ id: 501, title: 'Haftalık Odak Noktası', content: 'Bu hafta müşteri memnuniyeti ve raporlama üzerine yoğunlaşacağız.' });
                 this.state.archive[this.state.selectedMonth].adsData.push(
                     { id: 601, date: '12.04', spend: 450, reach: 12000, clicks: 340 },
@@ -116,6 +120,8 @@
 
                 this.render();
                 this.startClock();
+                // Başlangıçta 1 kez verileri gönder
+                this.syncToSheets();
             },
 
             createEmptyMonth() {
@@ -133,6 +139,31 @@
                 return this.state.archive[this.state.selectedMonth];
             },
 
+            // --- GOOGLE SHEETS SENKRONİZASYON ---
+            syncToSheets() {
+                if (this.timers.sync) clearTimeout(this.timers.sync);
+                
+                // Her tuşa basışta API'yi meşgul etmemek için 1.5 sn gecikmeli (debounce) çalışır.
+                this.timers.sync = setTimeout(() => {
+                    const currentData = this.getActiveData();
+                    
+                    fetch(APPS_SCRIPT_URL, {
+                        method: "POST",
+                        mode: "no-cors",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            monthKey: this.state.selectedMonth,
+                            data: currentData
+                        })
+                    }).then(() => {
+                        console.log(`[${this.state.selectedMonth}] verisi Google Sheets'e senkronize edildi.`);
+                    }).catch(err => {
+                        console.error("Sheets Kayıt Hatası:", err);
+                    });
+                }, 1500); 
+            },
+
+            // --- YARDIMCI FONKSİYONLAR ---
             formatTime(date) {
                 return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
             },
@@ -159,6 +190,7 @@
                 }, 1000);
             },
 
+            // --- AKSİYONLAR ---
             setView(view) {
                 this.state.currentView = view;
                 this.state.expandedId = null;
@@ -181,29 +213,39 @@
                 this.render();
             },
 
+            // Günlük İşlemler
             addTask() {
                 const input = document.getElementById('newTaskInput');
                 const priority = document.getElementById('newTaskPriority');
                 const date = document.getElementById('newTaskDate');
+                
                 if (!input.value.trim()) return;
+                
                 const item = { id: Date.now(), text: input.value, description: '', completed: false, priority: priority.value, dueDate: date.value };
                 this.getActiveData().tasks.unshift(item);
+                
+                this.syncToSheets();
                 this.render();
             },
             toggleTask(id) {
                 const task = this.getActiveData().tasks.find(t => t.id === id);
                 if(task) task.completed = !task.completed;
+                
+                this.syncToSheets();
                 this.render();
             },
             deleteTask(id) {
                 this.getActiveData().tasks = this.getActiveData().tasks.filter(t => t.id !== id);
+                this.syncToSheets();
                 this.render();
             },
             updateTaskDesc(id, val) {
                 const task = this.getActiveData().tasks.find(t => t.id === id);
                 if(task) task.description = val;
+                this.syncToSheets();
             },
 
+            // Ekip İşlemleri
             setActiveMember(member) {
                 this.state.activeMember = member;
                 this.state.expandedId = null;
@@ -214,64 +256,86 @@
                 if (!input.value.trim()) return;
                 const item = { id: Date.now(), text: input.value, description: '', completed: false };
                 this.getActiveData().teamTasks[this.state.activeMember].unshift(item);
+                
+                this.syncToSheets();
                 this.render();
             },
             toggleTeamTask(member, id) {
                 const task = this.getActiveData().teamTasks[member].find(t => t.id === id);
                 if(task) task.completed = !task.completed;
+                
+                this.syncToSheets();
                 this.render();
             },
             deleteTeamTask(member, id) {
                 this.getActiveData().teamTasks[member] = this.getActiveData().teamTasks[member].filter(t => t.id !== id);
+                this.syncToSheets();
                 this.render();
             },
             updateTeamTaskDesc(member, id, val) {
                 const task = this.getActiveData().teamTasks[member].find(t => t.id === id);
                 if(task) task.description = val;
+                this.syncToSheets();
             },
 
+            // İçerik Fikirleri
             addIdea() {
                 const input = document.getElementById('newIdeaInput');
                 if (!input.value.trim()) return;
                 this.getActiveData().contentIdeas.unshift({ id: Date.now(), text: input.value, description: '', completed: false });
+                
+                this.syncToSheets();
                 this.render();
             },
             toggleIdea(id) {
                 const idea = this.getActiveData().contentIdeas.find(i => i.id === id);
                 if(idea) idea.completed = !idea.completed;
+                
+                this.syncToSheets();
                 this.render();
             },
             deleteIdea(id) {
                 this.getActiveData().contentIdeas = this.getActiveData().contentIdeas.filter(i => i.id !== id);
+                this.syncToSheets();
                 this.render();
             },
             updateIdeaDesc(id, val) {
                 const idea = this.getActiveData().contentIdeas.find(i => i.id === id);
                 if(idea) idea.description = val;
+                this.syncToSheets();
             },
 
+            // Haftalık Notlar
             addWeeklyNote() {
                 const input = document.getElementById('newNoteTitleInput');
                 if (!input.value.trim()) return;
                 this.getActiveData().weeklyNotes.unshift({ id: Date.now(), title: input.value, content: '' });
+                
+                this.syncToSheets();
                 this.render();
             },
             deleteWeeklyNote(id) {
                 this.getActiveData().weeklyNotes = this.getActiveData().weeklyNotes.filter(n => n.id !== id);
+                this.syncToSheets();
                 this.render();
             },
             updateWeeklyNoteContent(id, val) {
                 const note = this.getActiveData().weeklyNotes.find(n => n.id === id);
                 if(note) note.content = val;
+                this.syncToSheets();
             },
 
+            // Aylık Hedef & Dashboard Notları
             updateMonthlyGoals(val) {
                 this.getActiveData().monthlyGoals = val;
+                this.syncToSheets();
             },
             updateDashboardNotes(val) {
                 this.getActiveData().dashboardNotes = val;
+                this.syncToSheets();
             },
 
+            // Toplantı
             toggleRecord() {
                 this.state.isRecording = !this.state.isRecording;
                 if (this.state.isRecording) {
@@ -297,9 +361,11 @@
                 });
                 
                 if(this.state.isRecording) this.toggleRecord();
+                this.syncToSheets();
                 this.render();
             },
 
+            // Analiz
             addAdData() {
                 const dDate = document.getElementById('adDate').value;
                 const dSpend = document.getElementById('adSpend').value;
@@ -312,13 +378,17 @@
                     reach: parseInt(dReach) || 0, clicks: parseInt(dClicks) || 0
                 });
                 this.getActiveData().adsData.sort((a,b) => a.date.localeCompare(b.date));
+                
+                this.syncToSheets();
                 this.render();
             },
             deleteAdData(id) {
                 this.getActiveData().adsData = this.getActiveData().adsData.filter(d => d.id !== id);
+                this.syncToSheets();
                 this.render();
             },
 
+            // Kopyalama
             copySticker(text) {
                 const el = document.createElement('textarea');
                 el.value = text;
@@ -337,6 +407,8 @@
                 }, 2000);
             },
 
+
+            // --- RENDER MANTIĞI ---
             render() {
                 const root = document.getElementById('app-root');
                 root.innerHTML = `
@@ -349,26 +421,27 @@
 
             getHTMLHeader() {
                 const isDashboard = this.state.currentView === 'dashboard';
+                const todayStr = new Date().toISOString().split('T')[0];
                 const currentMKey = `${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, '0')}`;
                 
                 return `
                 <header class="flex flex-col gap-6 mb-12">
-                    <div class="flex flex-col md:flex-row items-center justify-between gap-6 bg-white p-8 rounded-[3rem] shadow-xl border-2 border-pink-100">
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-6 bg-white p-8 rounded-[3rem] shadow-xl border-2 border-stone-100">
                         <div class="flex items-center gap-5">
-                            ${!isDashboard ? `<button onclick="app.setView('dashboard')" class="bg-stone-700 text-white p-4 rounded-2xl hover:scale-110 transition-transform"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>` : ''}
-                            <div class="bg-gradient-to-tr from-pink-300 to-orange-200 p-4 rounded-[1.5rem] shadow-lg shadow-pink-100">
+                            ${!isDashboard ? `<button onclick="app.setView('dashboard')" class="bg-stone-800 text-white p-4 rounded-2xl hover:scale-110 transition-transform"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>` : ''}
+                            <div class="bg-gradient-to-tr from-rose-400 to-orange-300 p-4 rounded-[1.5rem] shadow-lg shadow-rose-100">
                                 <i data-lucide="sparkles" class="text-white w-8 h-8"></i>
                             </div>
                             <div>
-                                <h1 class="text-4xl font-black text-stone-700 tracking-tighter uppercase leading-none">Notlarım</h1>
-                                <span class="text-pink-400 text-xs font-black uppercase tracking-[0.3em]">${this.state.currentView} MODU</span>
+                                <h1 class="text-4xl font-black text-stone-800 tracking-tighter uppercase leading-none">Notlarım</h1>
+                                <span class="text-rose-500 text-xs font-black uppercase tracking-[0.3em]">${this.state.currentView} MODU</span>
                             </div>
                         </div>
                         
-                        <div class="flex items-center gap-8 bg-stone-50 px-8 py-4 rounded-[2rem] border-2 border-stone-100">
+                        <div class="flex items-center gap-8 bg-stone-50 px-8 py-4 rounded-[2rem] border-2 border-stone-200">
                             <div class="text-center border-r-2 border-stone-200 pr-8">
-                                <div class="text-stone-700 font-black text-3xl leading-none flex items-center gap-2">
-                                    <i data-lucide="clock" class="text-pink-300 w-6 h-6"></i> <span id="liveClock">${this.formatTime(new Date())}</span>
+                                <div class="text-stone-800 font-black text-3xl leading-none flex items-center gap-2">
+                                    <i data-lucide="clock" class="text-rose-400 w-6 h-6"></i> <span id="liveClock">${this.formatTime(new Date())}</span>
                                 </div>
                             </div>
                             <div class="text-left">
@@ -377,19 +450,19 @@
                         </div>
                     </div>
 
-                    <div class="flex flex-wrap items-center justify-between bg-white px-8 py-5 rounded-[2.5rem] shadow-lg border-b-4 border-pink-200 gap-4">
+                    <div class="flex flex-wrap items-center justify-between bg-white px-8 py-5 rounded-[2.5rem] shadow-lg border-b-4 border-rose-300 gap-4">
                         <div class="flex items-center gap-4">
-                            <i data-lucide="history" class="text-pink-300 w-6 h-6"></i>
+                            <i data-lucide="history" class="text-rose-400 w-6 h-6"></i>
                             <h3 class="text-sm font-black uppercase tracking-widest text-stone-400">Arşiv:</h3>
                         </div>
                         <div class="flex items-center gap-4 sm:gap-6">
-                            <button onclick="app.handleMonthChange('prev')" class="bg-stone-50 p-3 rounded-xl hover:bg-pink-300 text-stone-500 hover:text-white transition-all"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
-                            <div class="text-lg sm:text-xl font-black text-stone-600 uppercase tracking-tighter px-4 sm:px-6 py-2 bg-pink-50 rounded-2xl border-2 border-pink-100 min-w-[150px] sm:min-w-[200px] text-center">
+                            <button onclick="app.handleMonthChange('prev')" class="bg-stone-100 p-3 rounded-xl hover:bg-rose-400 hover:text-white transition-all"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+                            <div class="text-lg sm:text-xl font-black text-stone-700 uppercase tracking-tighter px-4 sm:px-6 py-2 bg-rose-50 rounded-2xl border-2 border-rose-200 min-w-[150px] sm:min-w-[200px] text-center">
                                 ${this.getMonthName(this.state.selectedMonth)}
                             </div>
-                            <button onclick="app.handleMonthChange('next')" class="bg-stone-50 p-3 rounded-xl hover:bg-pink-300 text-stone-500 hover:text-white transition-all"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+                            <button onclick="app.handleMonthChange('next')" class="bg-stone-100 p-3 rounded-xl hover:bg-rose-400 hover:text-white transition-all"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
                         </div>
-                        <div class="hidden lg:block text-xs font-black ${this.state.selectedMonth === currentMKey ? 'text-pink-400' : 'text-stone-400'} uppercase tracking-widest">
+                        <div class="hidden lg:block text-xs font-black ${this.state.selectedMonth === currentMKey ? 'text-rose-500' : 'text-stone-400'} uppercase tracking-widest">
                             ${this.state.selectedMonth === currentMKey ? "● Aktif Dönem" : "○ Arşiv Kaydı"}
                         </div>
                     </div>
@@ -399,10 +472,10 @@
 
             getHTMLFooter() {
                 return `
-                <footer class="mt-20 mb-12 text-center opacity-40">
+                <footer class="mt-20 mb-12 text-center opacity-30">
                     <div class="flex items-center justify-center gap-4">
                         <div class="h-px w-20 bg-stone-300"></div>
-                        <p class="text-xs font-black uppercase tracking-[0.5em] text-stone-400">NOTLARIM NUDE SERİSİ • ${this.state.selectedMonth} ARŞİVİ</p>
+                        <p class="text-xs font-black uppercase tracking-[0.5em] text-stone-600">NOTLARIM NUDE SERİSİ • ${this.state.selectedMonth} ARŞİVİ</p>
                         <div class="h-px w-20 bg-stone-300"></div>
                     </div>
                 </footer>
@@ -431,10 +504,10 @@
                 const hasHighPriority = activeData.tasks.some(t => !t.completed && t.priority === 'high');
 
                 const cards = [
-                    { id: 'daily', icon: 'list-todo', label: 'GÜNLÜK', colors: 'from-pink-300 to-orange-200' },
-                    { id: 'weekly', icon: 'calendar', label: 'HAFTALIK', colors: 'from-orange-200 to-stone-200' },
+                    { id: 'daily', icon: 'list-todo', label: 'GÜNLÜK', colors: 'from-rose-300 to-orange-200' },
+                    { id: 'weekly', icon: 'calendar', label: 'HAFTALIK', colors: 'from-orange-200 to-amber-200' },
                     { id: 'monthly', icon: 'calendar-days', label: 'AYLIK', colors: 'from-stone-300 to-stone-200' },
-                    { id: 'meeting', icon: 'users', label: 'TOPLANTI', colors: 'from-pink-200 to-rose-200' },
+                    { id: 'meeting', icon: 'users', label: 'TOPLANTI', colors: 'from-pink-300 to-rose-200' },
                     { id: 'team', icon: 'user-plus', label: 'EKİP', colors: 'from-rose-400 to-pink-300' },
                     { id: 'ideas', icon: 'lightbulb', label: 'FİKİRLER', colors: 'from-amber-200 to-orange-300' },
                     { id: 'analytics', icon: 'trending-up', label: 'ANALİZ', colors: 'from-stone-400 to-rose-300' },
@@ -450,11 +523,11 @@
                 `).join('');
 
                 let remindersHTML = reminders.length === 0 
-                    ? `<p class="text-stone-400 font-bold italic">Her şey yolunda! 🌸</p>`
+                    ? `<p class="text-stone-400 font-bold italic">Her şey yolunda! 🔥</p>`
                     : reminders.map(r => `
-                        <div class="bg-pink-50 p-6 rounded-3xl border-2 border-pink-100 flex justify-between items-center group">
-                            <span class="font-black text-pink-400 truncate mr-4">${r.text}</span>
-                            <span class="text-xs bg-pink-300 text-white px-3 py-1 rounded-full font-black uppercase whitespace-nowrap">ACİL</span>
+                        <div class="bg-rose-50 p-6 rounded-3xl border-2 border-rose-200 flex justify-between items-center group">
+                            <span class="font-black text-rose-500 truncate mr-4">${r.text}</span>
+                            <span class="text-xs bg-rose-500 text-white px-3 py-1 rounded-full font-black uppercase whitespace-nowrap">ACİL</span>
                         </div>
                     `).join('');
 
@@ -465,22 +538,22 @@
                     </div>
 
                     <div class="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div class="bg-white p-10 rounded-[3rem] shadow-2xl border-4 border-stone-100 relative">
-                            <div class="flex items-center gap-4 mb-8 text-stone-700">
-                                <div class="bg-orange-100 p-3 rounded-2xl border-2 border-stone-100"><i data-lucide="bell" class="w-6 h-6 text-stone-500"></i></div>
+                        <div class="bg-white p-10 rounded-[3rem] shadow-2xl border-4 border-stone-800 relative">
+                            <div class="flex items-center gap-4 mb-8 text-stone-800">
+                                <div class="bg-rose-300 p-3 rounded-2xl border-2 border-stone-800"><i data-lucide="bell" class="w-6 h-6 text-stone-800"></i></div>
                                 <h3 class="text-2xl font-black uppercase tracking-tighter">Acil Radarı</h3>
                             </div>
                             <div class="space-y-4">
-                                ${!hasHighPriority && reminders.length === 0 ? `<p class="text-stone-400 font-bold italic">Kritik iş yok! 🌸</p>` : remindersHTML}
+                                ${!hasHighPriority && reminders.length === 0 ? `<p class="text-stone-400 font-bold italic">Kritik iş yok! 🔥</p>` : remindersHTML}
                             </div>
                         </div>
 
-                        <div class="bg-stone-700 p-10 rounded-[3rem] text-white relative overflow-hidden flex flex-col">
-                            <i data-lucide="zap" class="absolute -right-10 -bottom-10 text-pink-200 opacity-20 rotate-12 w-[240px] h-[240px]"></i>
+                        <div class="bg-stone-800 p-10 rounded-[3rem] text-white relative overflow-hidden flex flex-col">
+                            <i data-lucide="zap" class="absolute -right-10 -bottom-10 text-rose-300 opacity-20 rotate-12 w-[240px] h-[240px]"></i>
                             <div class="flex items-center justify-between mb-6 relative z-10">
                                 <div class="flex items-center gap-3">
-                                    <div class="bg-pink-200 p-2 rounded-xl border-2 border-stone-600"><i data-lucide="edit-3" class="text-stone-700 w-5 h-5"></i></div>
-                                    <h3 class="text-2xl font-black uppercase tracking-tighter text-pink-200">Hızlı Not Defteri</h3>
+                                    <div class="bg-rose-300 p-2 rounded-xl border-2 border-stone-800"><i data-lucide="edit-3" class="text-stone-800 w-5 h-5"></i></div>
+                                    <h3 class="text-2xl font-black uppercase tracking-tighter text-rose-300">Hızlı Not Defteri</h3>
                                 </div>
                                 <div class="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 italic">Otomatik Kaydedilir</div>
                             </div>
@@ -488,7 +561,7 @@
                             <textarea
                                 oninput="app.updateDashboardNotes(this.value)"
                                 placeholder="Buraya o anki ay için genel stratejilerini karalayabilirsin..."
-                                class="flex-1 w-full bg-white/5 border-2 border-stone-500 rounded-[2rem] p-6 text-xl font-bold leading-relaxed outline-none focus:border-pink-300 transition-all resize-none placeholder:text-stone-400 relative z-10 shadow-inner text-white"
+                                class="flex-1 w-full bg-white/5 border-2 border-stone-600 rounded-[2rem] p-6 text-xl font-bold leading-relaxed outline-none focus:border-rose-300/50 transition-all resize-none placeholder:text-stone-500 relative z-10 shadow-inner text-white"
                             >${activeData.dashboardNotes}</textarea>
                         </div>
                     </div>
@@ -499,40 +572,40 @@
             renderDaily() {
                 const activeData = this.getActiveData();
                 let tasksHTML = activeData.tasks.map(task => `
-                    <div class="flex flex-col p-6 rounded-[2.5rem] border-4 transition-all overflow-hidden ${task.completed ? 'bg-stone-50 border-transparent opacity-50 scale-95' : this.state.expandedId === task.id ? 'bg-pink-50 border-pink-200 shadow-2xl' : 'bg-white border-stone-100 hover:border-pink-200 cursor-pointer'}" onclick="${!task.completed ? `app.setExpandedId(${task.id})` : ''}">
+                    <div class="flex flex-col p-6 rounded-[2.5rem] border-4 transition-all overflow-hidden ${task.completed ? 'bg-stone-50 border-transparent opacity-50 scale-95' : this.state.expandedId === task.id ? 'bg-rose-50 border-rose-300 shadow-2xl' : 'bg-white border-stone-100 hover:border-rose-200 cursor-pointer'}" onclick="${!task.completed ? `app.setExpandedId(${task.id})` : ''}">
                         <div class="flex items-center gap-4 sm:gap-6">
                             <button onclick="event.stopPropagation(); app.toggleTask(${task.id});" class="transition-transform active:scale-125 shrink-0">
-                                ${task.completed ? `<i data-lucide="check-circle-2" class="text-pink-400 w-9 h-9"></i>` : `<i data-lucide="circle" class="text-stone-300 w-9 h-9"></i>`}
+                                ${task.completed ? `<i data-lucide="check-circle-2" class="text-rose-400 w-9 h-9"></i>` : `<i data-lucide="circle" class="text-stone-200 w-9 h-9"></i>`}
                             </button>
-                            <span class="text-lg sm:text-xl font-black flex-1 ${task.completed ? 'line-through text-stone-400' : 'text-stone-700'}">${task.text}</span>
+                            <span class="text-lg sm:text-xl font-black flex-1 ${task.completed ? 'line-through text-stone-400' : 'text-stone-800'}">${task.text}</span>
                             
-                            ${!task.completed ? (this.state.expandedId === task.id ? `<i data-lucide="chevron-up" class="w-6 h-6 text-pink-300 shrink-0"></i>` : `<i data-lucide="chevron-down" class="w-6 h-6 text-stone-300 shrink-0"></i>`) : ''}
+                            ${!task.completed ? (this.state.expandedId === task.id ? `<i data-lucide="chevron-up" class="w-6 h-6 text-rose-400 shrink-0"></i>` : `<i data-lucide="chevron-down" class="w-6 h-6 text-stone-300 shrink-0"></i>`) : ''}
                         </div>
                         ${!task.completed && this.state.expandedId === task.id ? `
-                        <div class="mt-6 pt-6 border-t border-pink-100 animate-slide-in-top" onclick="event.stopPropagation()">
-                            <textarea oninput="app.updateTaskDesc(${task.id}, this.value)" placeholder="Detayları buraya ekle..." class="w-full bg-white p-6 rounded-3xl border-2 border-pink-100 outline-none focus:border-pink-300 text-stone-600 font-bold text-sm min-h-[120px] resize-none shadow-inner">${task.description}</textarea>
-                            <button onclick="app.deleteTask(${task.id})" class="mt-4 flex items-center gap-2 text-pink-400 font-bold hover:text-pink-500"><i data-lucide="trash-2" class="w-4 h-4"></i> Görevi Sil</button>
+                        <div class="mt-6 pt-6 border-t border-rose-200 animate-slide-in-top" onclick="event.stopPropagation()">
+                            <textarea oninput="app.updateTaskDesc(${task.id}, this.value)" placeholder="Detayları buraya ekle..." class="w-full bg-white p-6 rounded-3xl border-2 border-rose-100 outline-none focus:border-rose-400 text-stone-700 font-bold text-sm min-h-[120px] resize-none shadow-inner">${task.description}</textarea>
+                            <button onclick="app.deleteTask(${task.id})" class="mt-4 flex items-center gap-2 text-rose-500 font-bold hover:text-rose-600"><i data-lucide="trash-2" class="w-4 h-4"></i> Görevi Sil</button>
                         </div>
                         ` : ''}
                     </div>
                 `).join('');
 
                 return `
-                <div class="animate-slide-in-bottom bg-white p-6 sm:p-10 rounded-[4rem] shadow-2xl border-4 border-pink-100 min-h-[700px]">
+                <div class="animate-slide-in-bottom bg-white p-6 sm:p-10 rounded-[4rem] shadow-2xl border-4 border-rose-100 min-h-[700px]">
                     <div class="flex items-center gap-4 mb-10">
-                        <div class="bg-pink-300 p-4 rounded-3xl text-white shadow-lg"><i data-lucide="list-todo" class="w-8 h-8"></i></div>
-                        <h2 class="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-stone-700">GÜNLÜK PLAN</h2>
+                        <div class="bg-rose-400 p-4 rounded-3xl text-white shadow-lg"><i data-lucide="list-todo" class="w-8 h-8"></i></div>
+                        <h2 class="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-stone-800">GÜNLÜK PLAN</h2>
                     </div>
-                    <form onsubmit="event.preventDefault(); app.addTask();" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10 bg-pink-50 p-6 sm:p-8 rounded-[2.5rem] border-2 border-pink-100">
-                        <input type="text" id="newTaskInput" placeholder="Hangi harika işi ekleyelim?" class="md:col-span-2 p-4 rounded-2xl outline-none font-bold shadow-sm w-full text-stone-600" />
-                        <select id="newTaskPriority" class="p-4 rounded-2xl font-black text-pink-400 outline-none w-full">
+                    <form onsubmit="event.preventDefault(); app.addTask();" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10 bg-rose-50 p-6 sm:p-8 rounded-[2.5rem] border-2 border-rose-100">
+                        <input type="text" id="newTaskInput" placeholder="Hangi harika işi ekleyelim?" class="md:col-span-2 p-4 rounded-2xl outline-none font-bold shadow-sm w-full text-stone-700" />
+                        <select id="newTaskPriority" class="p-4 rounded-2xl font-black text-rose-500 outline-none w-full">
                             <option value="high">YÜKSEK 🔥</option>
                             <option value="medium" selected>ORTA ⚡</option>
                             <option value="low">DÜŞÜK ☘️</option>
                         </select>
                         <div class="flex gap-2 w-full">
-                            <input type="date" id="newTaskDate" class="p-4 rounded-2xl flex-1 outline-none font-bold w-full text-stone-500" />
-                            <button type="submit" class="bg-pink-300 text-white p-4 rounded-2xl shadow-xl transition-all hover:bg-pink-400 shrink-0"><i data-lucide="plus" class="w-8 h-8"></i></button>
+                            <input type="date" id="newTaskDate" class="p-4 rounded-2xl flex-1 outline-none font-bold w-full text-stone-600" />
+                            <button type="submit" class="bg-rose-400 text-white p-4 rounded-2xl shadow-xl transition-all hover:bg-rose-500 shrink-0"><i data-lucide="plus" class="w-8 h-8"></i></button>
                         </div>
                     </form>
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -548,16 +621,16 @@
 
                 let barsHTML = activeData.adsData.map(data => `
                     <div class="flex-1 flex flex-col items-center group relative min-w-[40px]">
-                        <div class="absolute bottom-full mb-4 bg-white text-stone-600 p-4 rounded-2xl text-xs font-bold shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none w-36 border-2 border-pink-200">
-                            <div class="text-pink-400 uppercase mb-1">${data.date}</div>
+                        <div class="absolute bottom-full mb-4 bg-white text-stone-800 p-4 rounded-2xl text-xs font-bold shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none w-36 border-2 border-stone-300">
+                            <div class="text-rose-400 uppercase mb-1">${data.date}</div>
                             <div>💰 ${data.spend} TL</div>
                             <div>👁️ ${data.reach.toLocaleString()}</div>
                             <div>🖱️ ${data.clicks} Klik</div>
                             <div class="mt-2 pt-2 border-t border-stone-100 text-stone-500 font-black">CTR: %${data.reach > 0 ? ((data.clicks/data.reach)*100).toFixed(2) : 0}</div>
                         </div>
-                        <div class="w-full bg-gradient-to-t from-stone-400 to-pink-300 rounded-t-xl shadow-lg group-hover:to-pink-200 transition-all duration-500" style="height: ${(data.spend / maxSpend) * 300}px"></div>
+                        <div class="w-full bg-gradient-to-t from-stone-400 to-rose-300 rounded-t-xl shadow-lg group-hover:to-rose-200 transition-all duration-500" style="height: ${(data.spend / maxSpend) * 300}px"></div>
                         <div class="mt-4 text-[10px] font-black text-stone-400 uppercase">${data.date}</div>
-                        <button onclick="app.deleteAdData(${data.id})" class="mt-2 opacity-0 group-hover:opacity-100 text-pink-400 transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        <button onclick="app.deleteAdData(${data.id})" class="mt-2 opacity-0 group-hover:opacity-100 text-rose-400 transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </div>
                 `).join('');
 
@@ -574,40 +647,40 @@
                 const totalSpend = activeData.adsData.reduce((acc, d) => acc + d.spend, 0);
 
                 return `
-                <div class="animate-slide-in-bottom bg-white p-6 sm:p-10 rounded-[4rem] shadow-2xl border-4 border-stone-100 min-h-[700px]">
+                <div class="animate-slide-in-bottom bg-white p-6 sm:p-10 rounded-[4rem] shadow-2xl border-4 border-stone-200 min-h-[700px]">
                     <div class="flex flex-col xl:flex-row gap-10">
                         <div class="xl:w-1/3 space-y-8">
                             <div class="flex items-center gap-4">
-                                <div class="bg-stone-300 p-4 rounded-3xl text-white shadow-lg"><i data-lucide="trending-up" class="w-8 h-8"></i></div>
-                                <h2 class="text-3xl sm:text-4xl font-black text-stone-700 uppercase tracking-tighter leading-tight">REKLAM ANALİZİ</h2>
+                                <div class="bg-stone-400 p-4 rounded-3xl text-white shadow-lg"><i data-lucide="trending-up" class="w-8 h-8"></i></div>
+                                <h2 class="text-3xl sm:text-4xl font-black text-stone-800 uppercase tracking-tighter leading-tight">REKLAM ANALİZİ</h2>
                             </div>
                             <form onsubmit="event.preventDefault(); app.addAdData();" class="bg-stone-50 p-8 rounded-[3rem] border-2 border-stone-100 space-y-4">
-                                <input type="text" id="adDate" placeholder="GÜN.AY (14.04)" class="w-full bg-white p-4 rounded-2xl outline-none border-2 border-transparent focus:border-pink-300 font-bold text-stone-600" />
-                                <input type="number" id="adSpend" placeholder="HARCAMA (TL)" class="w-full bg-white p-4 rounded-2xl outline-none border-2 border-transparent focus:border-pink-300 font-bold text-stone-600" />
-                                <input type="number" id="adReach" placeholder="ERİŞİM" class="w-full bg-white p-4 rounded-2xl outline-none border-2 border-transparent focus:border-pink-300 font-bold text-stone-600" />
-                                <input type="number" id="adClicks" placeholder="TIKLAMA" class="w-full bg-white p-4 rounded-2xl outline-none border-2 border-transparent focus:border-pink-300 font-bold text-stone-600" />
-                                <button type="submit" class="w-full bg-stone-300 text-white p-5 rounded-2xl font-black uppercase shadow-xl hover:bg-stone-400 transition-all flex items-center justify-center gap-2"><i data-lucide="plus" class="w-6 h-6"></i> GRAFİĞE İŞLE</button>
+                                <input type="text" id="adDate" placeholder="GÜN.AY (14.04)" class="w-full bg-white p-4 rounded-2xl outline-none border-2 border-transparent focus:border-stone-300 font-bold text-stone-700" />
+                                <input type="number" id="adSpend" placeholder="HARCAMA (TL)" class="w-full bg-white p-4 rounded-2xl outline-none border-2 border-transparent focus:border-stone-300 font-bold text-stone-700" />
+                                <input type="number" id="adReach" placeholder="ERİŞİM" class="w-full bg-white p-4 rounded-2xl outline-none border-2 border-transparent focus:border-stone-300 font-bold text-stone-700" />
+                                <input type="number" id="adClicks" placeholder="TIKLAMA" class="w-full bg-white p-4 rounded-2xl outline-none border-2 border-transparent focus:border-stone-300 font-bold text-stone-700" />
+                                <button type="submit" class="w-full bg-stone-400 text-white p-5 rounded-2xl font-black uppercase shadow-xl hover:bg-stone-500 transition-all flex items-center justify-center gap-2"><i data-lucide="plus" class="w-6 h-6"></i> GRAFİĞE İŞLE</button>
                             </form>
                             <div class="grid grid-cols-2 gap-4">
-                                <div class="bg-pink-50 p-6 rounded-[2rem] border-2 border-pink-100">
-                                    <div class="text-[10px] font-black uppercase text-pink-400 mb-1">Toplam Erişim</div>
-                                    <div class="text-2xl font-black text-stone-700">${totalReach.toLocaleString()}</div>
+                                <div class="bg-rose-50 p-6 rounded-[2rem] border-2 border-rose-200">
+                                    <div class="text-[10px] font-black uppercase text-rose-500 mb-1">Toplam Erişim</div>
+                                    <div class="text-2xl font-black text-stone-800">${totalReach.toLocaleString()}</div>
                                 </div>
-                                <div class="bg-orange-50 p-6 rounded-[2rem] border-2 border-orange-100">
-                                    <div class="text-[10px] font-black uppercase text-orange-400 mb-1">Toplam Bütçe</div>
-                                    <div class="text-2xl font-black text-stone-700">${totalSpend} TL</div>
+                                <div class="bg-orange-50 p-6 rounded-[2rem] border-2 border-orange-200">
+                                    <div class="text-[10px] font-black uppercase text-orange-500 mb-1">Toplam Bütçe</div>
+                                    <div class="text-2xl font-black text-stone-800">${totalSpend} TL</div>
                                 </div>
                             </div>
                         </div>
-                        <div class="xl:w-2/3 bg-stone-700 p-6 sm:p-10 rounded-[4rem] text-white flex flex-col">
+                        <div class="xl:w-2/3 bg-stone-800 p-6 sm:p-10 rounded-[4rem] text-white flex flex-col">
                             <div class="flex items-center justify-between mb-12 relative z-10">
                                 <div>
-                                    <h3 class="text-2xl sm:text-3xl font-black uppercase tracking-tighter text-pink-200 mb-2">VERİ GÖRSELLEŞTİRME</h3>
+                                    <h3 class="text-2xl sm:text-3xl font-black uppercase tracking-tighter text-rose-300 mb-2">VERİ GÖRSELLEŞTİRME</h3>
                                     <p class="text-stone-400 text-sm font-bold uppercase tracking-widest">Meta Business Reklam Performansı</p>
                                 </div>
-                                <i data-lucide="bar-chart-3" class="text-pink-300 opacity-30 w-16 h-16 hidden sm:block"></i>
+                                <i data-lucide="bar-chart-3" class="text-rose-300 opacity-30 w-16 h-16 hidden sm:block"></i>
                             </div>
-                            <div class="flex-1 min-h-[350px] flex items-end justify-between gap-2 sm:gap-4 px-2 sm:px-4 pb-10 border-b-2 border-stone-600 overflow-x-auto">
+                            <div class="flex-1 min-h-[350px] flex items-end justify-between gap-2 sm:gap-4 px-2 sm:px-4 pb-10 border-b-2 border-stone-700 overflow-x-auto">
                                 ${barsHTML}
                             </div>
                         </div>
@@ -621,23 +694,23 @@
                 const members = ['Beyza', 'Zeliha', 'Burak'];
                 
                 let tabsHTML = members.map(m => `
-                    <button onclick="app.setActiveMember('${m}')" class="px-6 sm:px-10 py-3 sm:py-4 rounded-[1.5rem] font-black uppercase transition-all text-xs sm:text-sm tracking-widest ${this.state.activeMember === m ? 'bg-pink-300 text-white shadow-xl scale-105' : 'text-pink-300 hover:text-pink-400'}">${m}</button>
+                    <button onclick="app.setActiveMember('${m}')" class="px-6 sm:px-10 py-3 sm:py-4 rounded-[1.5rem] font-black uppercase transition-all text-xs sm:text-sm tracking-widest ${this.state.activeMember === m ? 'bg-pink-400 text-white shadow-xl scale-105' : 'text-pink-300 hover:text-pink-400'}">${m}</button>
                 `).join('');
 
                 let tasksHTML = activeData.teamTasks[this.state.activeMember].map(task => `
-                    <div class="flex flex-col p-6 rounded-3xl border-4 transition-all overflow-hidden ${task.completed ? 'bg-stone-50 border-transparent opacity-50' : this.state.expandedId === task.id ? 'bg-pink-50 border-pink-200 shadow-2xl' : 'bg-white border-pink-50 hover:border-pink-100 cursor-pointer'}" onclick="${!task.completed ? `app.setExpandedId(${task.id})` : ''}">
+                    <div class="flex flex-col p-6 rounded-3xl border-4 transition-all overflow-hidden ${task.completed ? 'bg-stone-50 border-transparent opacity-50' : this.state.expandedId === task.id ? 'bg-pink-50 border-pink-300 shadow-2xl' : 'bg-white border-pink-50 hover:border-pink-200 cursor-pointer'}" onclick="${!task.completed ? `app.setExpandedId(${task.id})` : ''}">
                         <div class="flex items-center gap-4 sm:gap-6">
                             <button onclick="event.stopPropagation(); app.toggleTeamTask('${this.state.activeMember}', ${task.id});" class="transition-transform active:scale-125 shrink-0">
-                                ${task.completed ? `<i data-lucide="check-circle-2" class="text-pink-400 w-8 h-8"></i>` : `<i data-lucide="circle" class="text-stone-300 w-8 h-8"></i>`}
+                                ${task.completed ? `<i data-lucide="check-circle-2" class="text-stone-400 w-8 h-8"></i>` : `<i data-lucide="circle" class="text-stone-200 w-8 h-8"></i>`}
                             </button>
-                            <span class="text-base sm:text-lg font-bold flex-1 ${task.completed ? 'line-through text-stone-400' : 'text-stone-700'}">${task.text}</span>
+                            <span class="text-base sm:text-lg font-bold flex-1 ${task.completed ? 'line-through text-stone-400' : 'text-stone-800'}">${task.text}</span>
                             
-                            ${!task.completed ? (this.state.expandedId === task.id ? `<i data-lucide="chevron-up" class="w-6 h-6 text-pink-300 shrink-0"></i>` : `<i data-lucide="chevron-down" class="w-6 h-6 text-stone-300 shrink-0"></i>`) : ''}
+                            ${!task.completed ? (this.state.expandedId === task.id ? `<i data-lucide="chevron-up" class="w-6 h-6 text-pink-400 shrink-0"></i>` : `<i data-lucide="chevron-down" class="w-6 h-6 text-stone-300 shrink-0"></i>`) : ''}
                         </div>
                         ${!task.completed && this.state.expandedId === task.id ? `
-                        <div class="mt-6 pt-6 border-t border-pink-100 animate-slide-in-top" onclick="event.stopPropagation()">
-                            <textarea oninput="app.updateTeamTaskDesc('${this.state.activeMember}', ${task.id}, this.value)" placeholder="Detayları buraya yaz..." class="w-full bg-white p-6 rounded-2xl border-2 border-pink-100 outline-none focus:border-pink-300 text-stone-600 font-bold text-sm min-h-[150px] resize-none shadow-inner">${task.description}</textarea>
-                            <button onclick="app.deleteTeamTask('${this.state.activeMember}', ${task.id})" class="mt-4 flex items-center gap-2 text-pink-400 font-bold hover:text-pink-500"><i data-lucide="trash-2" class="w-4 h-4"></i> Sil</button>
+                        <div class="mt-6 pt-6 border-t border-pink-200 animate-slide-in-top" onclick="event.stopPropagation()">
+                            <textarea oninput="app.updateTeamTaskDesc('${this.state.activeMember}', ${task.id}, this.value)" placeholder="Detayları buraya yaz..." class="w-full bg-white p-6 rounded-2xl border-2 border-pink-100 outline-none focus:border-pink-400 text-stone-700 font-bold text-sm min-h-[150px] resize-none shadow-inner">${task.description}</textarea>
+                            <button onclick="app.deleteTeamTask('${this.state.activeMember}', ${task.id})" class="mt-4 flex items-center gap-2 text-rose-400 font-bold hover:text-rose-500"><i data-lucide="trash-2" class="w-4 h-4"></i> Sil</button>
                         </div>
                         ` : ''}
                     </div>
@@ -646,8 +719,8 @@
                 return `
                 <div class="animate-slide-in-bottom bg-white p-6 sm:p-10 rounded-[4rem] shadow-2xl border-4 border-pink-100 min-h-[700px]">
                     <div class="flex flex-wrap items-center gap-4 mb-10">
-                        <div class="bg-pink-300 p-4 rounded-3xl text-white shadow-lg"><i data-lucide="user-plus" class="w-8 h-8"></i></div>
-                        <h2 class="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-stone-700">EKİP YÖNETİMİ</h2>
+                        <div class="bg-pink-400 p-4 rounded-3xl text-white shadow-lg"><i data-lucide="user-plus" class="w-8 h-8"></i></div>
+                        <h2 class="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-stone-800">EKİP YÖNETİMİ</h2>
                     </div>
                     <div class="flex flex-wrap gap-2 sm:gap-4 mb-12 bg-pink-50 p-2 sm:p-3 rounded-[2rem] w-fit">
                         ${tabsHTML}
@@ -655,9 +728,9 @@
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
                         <div>
                             <form onsubmit="event.preventDefault(); app.addTeamTask();" class="bg-stone-50 p-6 sm:p-8 rounded-[3rem] border-2 border-stone-100">
-                                <h3 class="text-xl font-black mb-6 uppercase text-pink-400">GÖREV ATA</h3>
-                                <input type="text" id="newTeamTaskInput" placeholder="${this.state.activeMember} ne yapmalı?" class="w-full p-4 rounded-2xl font-bold outline-none shadow-sm focus:border-pink-300 border-2 border-transparent text-stone-600" />
-                                <button type="submit" class="w-full bg-pink-300 hover:bg-pink-400 transition-colors text-white mt-4 p-4 rounded-2xl font-black uppercase shadow-lg">ATAMA YAP</button>
+                                <h3 class="text-xl font-black mb-6 uppercase text-pink-500">GÖREV ATA</h3>
+                                <input type="text" id="newTeamTaskInput" placeholder="${this.state.activeMember} ne yapmalı?" class="w-full p-4 rounded-2xl font-bold outline-none shadow-sm focus:border-pink-400 border-2 border-transparent text-stone-700" />
+                                <button type="submit" class="w-full bg-pink-400 hover:bg-pink-500 transition-colors text-white mt-4 p-4 rounded-2xl font-black uppercase shadow-lg">ATAMA YAP</button>
                             </form>
                         </div>
                         <div class="space-y-4">
@@ -672,18 +745,18 @@
             renderIdeas() {
                 const activeData = this.getActiveData();
                 let ideasHTML = activeData.contentIdeas.map(idea => `
-                    <div class="flex flex-col p-6 sm:p-8 rounded-[2.5rem] border-4 transition-all overflow-hidden ${idea.completed ? 'bg-stone-50 border-transparent opacity-50 scale-95' : this.state.expandedId === idea.id ? 'bg-orange-50 border-orange-200 shadow-2xl scale-[1.02]' : 'bg-white border-stone-100 hover:border-orange-100 cursor-pointer'}" onclick="${!idea.completed ? `app.setExpandedId(${idea.id})` : ''}">
+                    <div class="flex flex-col p-6 sm:p-8 rounded-[2.5rem] border-4 transition-all overflow-hidden ${idea.completed ? 'bg-stone-50 border-transparent opacity-50 scale-95' : this.state.expandedId === idea.id ? 'bg-orange-50 border-orange-300 shadow-2xl scale-[1.02]' : 'bg-white border-stone-100 hover:border-orange-200 cursor-pointer'}" onclick="${!idea.completed ? `app.setExpandedId(${idea.id})` : ''}">
                         <div class="flex items-center gap-4 sm:gap-6">
                             <button onclick="event.stopPropagation(); app.toggleIdea(${idea.id});" class="transition-transform active:scale-125 shrink-0">
                                 ${idea.completed ? `<i data-lucide="check-circle-2" class="text-stone-400 w-9 h-9"></i>` : `<i data-lucide="circle" class="text-stone-200 w-9 h-9"></i>`}
                             </button>
-                            <span class="text-lg sm:text-xl font-black flex-1 ${idea.completed ? 'line-through text-stone-400' : 'text-stone-700'}">${idea.text}</span>
-                            ${!idea.completed ? (this.state.expandedId === idea.id ? `<i data-lucide="chevron-up" class="w-6 h-6 text-orange-300 shrink-0"></i>` : `<i data-lucide="chevron-down" class="w-6 h-6 text-stone-300 shrink-0"></i>`) : ''}
+                            <span class="text-lg sm:text-xl font-black flex-1 ${idea.completed ? 'line-through text-stone-400' : 'text-stone-800'}">${idea.text}</span>
+                            ${!idea.completed ? (this.state.expandedId === idea.id ? `<i data-lucide="chevron-up" class="w-6 h-6 text-orange-400 shrink-0"></i>` : `<i data-lucide="chevron-down" class="w-6 h-6 text-stone-300 shrink-0"></i>`) : ''}
                         </div>
                         ${!idea.completed && this.state.expandedId === idea.id ? `
-                        <div class="mt-6 pt-6 border-t border-orange-100 animate-slide-in-top" onclick="event.stopPropagation()">
-                            <textarea oninput="app.updateIdeaDesc(${idea.id}, this.value)" placeholder="Fikir detaylarını buraya ateşle..." class="w-full bg-white p-6 rounded-3xl border-2 border-orange-100 outline-none focus:border-orange-300 text-stone-600 font-bold text-sm min-h-[150px] resize-none shadow-inner">${idea.description}</textarea>
-                            <button onclick="app.deleteIdea(${idea.id})" class="mt-4 flex items-center gap-2 text-orange-400 font-bold hover:text-orange-500"><i data-lucide="trash-2" class="w-4 h-4"></i> Sil</button>
+                        <div class="mt-6 pt-6 border-t border-orange-200 animate-slide-in-top" onclick="event.stopPropagation()">
+                            <textarea oninput="app.updateIdeaDesc(${idea.id}, this.value)" placeholder="Fikir detaylarını buraya ateşle..." class="w-full bg-white p-6 rounded-3xl border-2 border-orange-100 outline-none focus:border-orange-400 text-stone-700 font-bold text-sm min-h-[150px] resize-none shadow-inner">${idea.description}</textarea>
+                            <button onclick="app.deleteIdea(${idea.id})" class="mt-4 flex items-center gap-2 text-rose-400 font-bold hover:text-rose-500"><i data-lucide="trash-2" class="w-4 h-4"></i> Sil</button>
                         </div>
                         ` : ''}
                     </div>
@@ -692,12 +765,12 @@
                 return `
                 <div class="animate-slide-in-bottom bg-white p-6 sm:p-10 rounded-[4rem] shadow-2xl border-4 border-orange-100 min-h-[700px]">
                     <div class="flex items-center gap-4 mb-10">
-                        <div class="bg-orange-200 p-4 rounded-3xl text-stone-700 shadow-lg"><i data-lucide="lightbulb" class="w-8 h-8"></i></div>
-                        <h2 class="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-stone-700">İÇERİK FİKİRLERİ</h2>
+                        <div class="bg-orange-300 p-4 rounded-3xl text-white shadow-lg"><i data-lucide="lightbulb" class="w-8 h-8"></i></div>
+                        <h2 class="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-stone-800">İÇERİK FİKİRLERİ</h2>
                     </div>
                     <form onsubmit="event.preventDefault(); app.addIdea();" class="bg-orange-50 p-6 sm:p-8 rounded-[2.5rem] flex flex-col md:flex-row gap-4 border-2 border-orange-100">
-                        <input type="text" id="newIdeaInput" placeholder="Yeni fikir?" class="flex-1 p-4 rounded-2xl font-bold outline-none shadow-sm focus:border-orange-300 border-2 border-transparent w-full text-stone-600" />
-                        <button type="submit" class="bg-orange-300 text-white px-10 py-4 rounded-2xl font-black uppercase hover:bg-orange-400 transition-all shadow-xl w-full md:w-auto"><i data-lucide="plus" class="w-8 h-8 mx-auto"></i></button>
+                        <input type="text" id="newIdeaInput" placeholder="Yeni fikir?" class="flex-1 p-4 rounded-2xl font-bold outline-none shadow-sm focus:border-orange-400 border-2 border-transparent w-full text-stone-700" />
+                        <button type="submit" class="bg-orange-400 text-white px-10 py-4 rounded-2xl font-black uppercase hover:bg-orange-500 transition-all shadow-xl w-full md:w-auto"><i data-lucide="plus" class="w-8 h-8 mx-auto"></i></button>
                     </form>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
                         ${ideasHTML}
@@ -709,16 +782,16 @@
             renderWeekly() {
                 const activeData = this.getActiveData();
                 let notesHTML = activeData.weeklyNotes.map(note => `
-                    <div class="p-6 sm:p-8 rounded-[3rem] border-4 transition-all overflow-hidden ${this.state.expandedId === note.id ? 'bg-stone-50 border-stone-300 shadow-2xl scale-[1.02]' : 'bg-white border-stone-100 hover:border-stone-200 cursor-pointer'}" onclick="app.setExpandedId(${note.id})">
+                    <div class="p-6 sm:p-8 rounded-[3rem] border-4 transition-all overflow-hidden ${this.state.expandedId === note.id ? 'bg-orange-50 border-orange-300 shadow-2xl scale-[1.02]' : 'bg-white border-stone-100 hover:border-orange-200 cursor-pointer'}" onclick="app.setExpandedId(${note.id})">
                         <div class="flex items-center justify-between">
-                            <h3 class="text-xl sm:text-2xl font-black text-stone-700">${note.title}</h3>
+                            <h3 class="text-xl sm:text-2xl font-black text-stone-800">${note.title}</h3>
                             <div class="flex items-center gap-2">
-                                ${this.state.expandedId === note.id ? `<i data-lucide="chevron-up" class="w-6 h-6 text-stone-400 shrink-0"></i>` : `<i data-lucide="chevron-down" class="w-6 h-6 text-stone-300 shrink-0"></i>`}
+                                ${this.state.expandedId === note.id ? `<i data-lucide="chevron-up" class="w-6 h-6 text-orange-400 shrink-0"></i>` : `<i data-lucide="chevron-down" class="w-6 h-6 text-stone-300 shrink-0"></i>`}
                             </div>
                         </div>
                         ${this.state.expandedId === note.id ? `
-                        <div class="mt-8 pt-8 border-t-2 border-stone-200 animate-slide-in-top" onclick="event.stopPropagation()">
-                            <textarea oninput="app.updateWeeklyNoteContent(${note.id}, this.value)" placeholder="Başlığın altını doldurmaya başla..." class="w-full bg-white p-6 sm:p-8 rounded-[2rem] text-lg sm:text-xl font-bold text-stone-600 outline-none border-2 border-stone-100 focus:border-stone-300 shadow-inner min-h-[300px] resize-none leading-relaxed">${note.content}</textarea>
+                        <div class="mt-8 pt-8 border-t-2 border-orange-200 animate-slide-in-top" onclick="event.stopPropagation()">
+                            <textarea oninput="app.updateWeeklyNoteContent(${note.id}, this.value)" placeholder="Başlığın altını doldurmaya başla..." class="w-full bg-white p-6 sm:p-8 rounded-[2rem] text-lg sm:text-xl font-bold text-stone-700 outline-none border-2 border-orange-100 focus:border-orange-400 shadow-inner min-h-[300px] resize-none leading-relaxed">${note.content}</textarea>
                             <button onclick="app.deleteWeeklyNote(${note.id})" class="mt-4 flex items-center gap-2 text-rose-400 font-bold hover:text-rose-500"><i data-lucide="trash-2" class="w-5 h-5"></i> Notu Sil</button>
                         </div>
                         ` : ''}
@@ -726,14 +799,14 @@
                 `).join('');
 
                 return `
-                <div class="animate-slide-in-bottom bg-white p-6 sm:p-10 rounded-[4rem] shadow-2xl border-4 border-stone-200 min-h-[700px]">
+                <div class="animate-slide-in-bottom bg-white p-6 sm:p-10 rounded-[4rem] shadow-2xl border-4 border-orange-100 min-h-[700px]">
                     <div class="flex items-center gap-4 mb-10">
-                        <div class="bg-stone-300 p-4 rounded-3xl text-white shadow-lg"><i data-lucide="calendar" class="w-8 h-8"></i></div>
-                        <h2 class="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-stone-700">HAFTALIK NOTLAR</h2>
+                        <div class="bg-orange-300 p-4 rounded-3xl text-white shadow-lg"><i data-lucide="calendar" class="w-8 h-8"></i></div>
+                        <h2 class="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-stone-800">HAFTALIK NOTLAR</h2>
                     </div>
-                    <form onsubmit="event.preventDefault(); app.addWeeklyNote();" class="bg-stone-50 p-6 sm:p-8 rounded-[2.5rem] flex flex-col md:flex-row gap-4 border-2 border-stone-100">
-                        <input type="text" id="newNoteTitleInput" placeholder="Not Başlığı..." class="flex-1 p-4 rounded-2xl font-bold outline-none shadow-sm focus:border-stone-300 border-2 border-transparent w-full text-stone-600" />
-                        <button type="submit" class="bg-stone-300 text-white px-10 py-4 rounded-2xl font-black uppercase hover:bg-stone-400 shadow-xl transition-all w-full md:w-auto"><i data-lucide="plus" class="w-8 h-8 mx-auto"></i></button>
+                    <form onsubmit="event.preventDefault(); app.addWeeklyNote();" class="bg-orange-50 p-6 sm:p-8 rounded-[2.5rem] flex flex-col md:flex-row gap-4 border-2 border-orange-100">
+                        <input type="text" id="newNoteTitleInput" placeholder="Not Başlığı..." class="flex-1 p-4 rounded-2xl font-bold outline-none shadow-sm focus:border-orange-400 border-2 border-transparent w-full text-stone-700" />
+                        <button type="submit" class="bg-orange-400 text-white px-10 py-4 rounded-2xl font-black uppercase hover:bg-orange-500 shadow-xl transition-all w-full md:w-auto"><i data-lucide="plus" class="w-8 h-8 mx-auto"></i></button>
                     </form>
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-10">
                         ${notesHTML}
@@ -747,15 +820,15 @@
                 return `
                 <div class="animate-slide-in-bottom bg-white p-6 sm:p-10 rounded-[4rem] shadow-2xl border-4 border-stone-200 min-h-[700px]">
                     <div class="flex items-center gap-4 mb-10">
-                        <div class="bg-stone-300 p-4 rounded-3xl text-white shadow-lg"><i data-lucide="calendar-days" class="w-8 h-8"></i></div>
-                        <h2 class="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-stone-700">VİZYON & HEDEFLER</h2>
+                        <div class="bg-stone-400 p-4 rounded-3xl text-white shadow-lg"><i data-lucide="calendar-days" class="w-8 h-8"></i></div>
+                        <h2 class="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-stone-800">VİZYON & HEDEFLER</h2>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                        <textarea oninput="app.updateMonthlyGoals(this.value)" class="h-[400px] sm:h-[500px] bg-stone-50 p-8 sm:p-10 rounded-[3rem] outline-none text-xl font-bold border-4 border-stone-100 shadow-inner resize-none focus:border-stone-200 transition-colors text-stone-600" placeholder="Bu ayın büyük hedefleri...">${activeData.monthlyGoals}</textarea>
-                        <div class="bg-stone-700 p-8 sm:p-10 rounded-[3rem] flex flex-col justify-center items-center text-center text-white relative overflow-hidden">
-                            <i data-lucide="bar-chart-3" class="text-stone-400 mb-6 opacity-40 w-32 h-32"></i>
-                            <h3 class="text-3xl font-black uppercase mb-4 tracking-tighter text-pink-200">Vizyon Analiz</h3>
-                            <p class="text-stone-300 font-bold italic text-lg leading-relaxed">Seçili ay: ${this.getMonthName(this.state.selectedMonth)}.<br>Hedeflerine ne kadar yakınsın?</p>
+                        <textarea oninput="app.updateMonthlyGoals(this.value)" class="h-[400px] sm:h-[500px] bg-stone-50 p-8 sm:p-10 rounded-[3rem] outline-none text-xl font-bold border-4 border-stone-100 shadow-inner resize-none focus:border-stone-300 transition-colors text-stone-700" placeholder="Bu ayın büyük hedefleri...">${activeData.monthlyGoals}</textarea>
+                        <div class="bg-stone-800 p-8 sm:p-10 rounded-[3rem] flex flex-col justify-center items-center text-center text-white relative overflow-hidden">
+                            <i data-lucide="bar-chart-3" class="text-stone-300 mb-6 opacity-40 w-32 h-32"></i>
+                            <h3 class="text-3xl font-black uppercase mb-4 tracking-tighter">Vizyon Analiz</h3>
+                            <p class="text-stone-400 font-bold italic text-lg leading-relaxed">Seçili ay: ${this.getMonthName(this.state.selectedMonth)}.<br>Hedeflerine ne kadar yakınsın?</p>
                         </div>
                     </div>
                 </div>
@@ -765,10 +838,10 @@
             renderMeeting() {
                 const activeData = this.getActiveData();
                 let archiveHTML = activeData.meetings.map(m => `
-                    <div class="p-6 sm:p-8 bg-pink-50 rounded-[2.5rem] border-2 border-pink-100 hover:border-pink-200 transition-all cursor-pointer relative overflow-hidden group">
-                        <div class="text-xs font-black text-pink-300 mb-2">${m.date}</div>
-                        <h4 class="text-xl font-black text-stone-600 leading-tight pr-8">${m.title}</h4>
-                        ${m.hasAudio ? `<div class="absolute right-6 top-1/2 -translate-y-1/2"><i data-lucide="mic" class="w-6 h-6 text-pink-200 group-hover:text-pink-300 transition-colors"></i></div>` : ''}
+                    <div class="p-6 sm:p-8 bg-pink-50 rounded-[2.5rem] border-2 border-pink-100 hover:scale-95 transition-all cursor-pointer relative overflow-hidden group">
+                        <div class="text-xs font-black text-pink-400 mb-2">${m.date}</div>
+                        <h4 class="text-xl font-black text-stone-800 leading-tight pr-8">${m.title}</h4>
+                        ${m.hasAudio ? `<div class="absolute right-6 top-1/2 -translate-y-1/2"><i data-lucide="mic" class="w-6 h-6 text-pink-300 group-hover:text-pink-400 transition-colors"></i></div>` : ''}
                     </div>
                 `).join('');
 
@@ -778,24 +851,24 @@
                         <div class="lg:col-span-2 space-y-8">
                             <div class="flex flex-wrap items-center justify-between gap-4 relative z-10">
                                 <div class="flex items-center gap-4">
-                                    <div class="bg-pink-300 p-4 rounded-3xl text-white shadow-lg"><i data-lucide="mic" class="w-8 h-8"></i></div>
-                                    <h2 class="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-stone-700">TOPLANTI ODASI</h2>
+                                    <div class="bg-pink-400 p-4 rounded-3xl text-white shadow-lg shadow-pink-200"><i data-lucide="mic" class="w-8 h-8"></i></div>
+                                    <h2 class="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-stone-800">TOPLANTI ODASI</h2>
                                 </div>
                                 ${this.state.isRecording ? `
-                                <div class="flex items-center gap-4 bg-pink-400 px-6 py-3 rounded-full text-white font-black shadow-lg animate-pulse">
+                                <div class="flex items-center gap-4 bg-pink-500 px-6 py-3 rounded-full text-white font-black shadow-lg animate-pulse">
                                     <div class="w-4 h-4 bg-white rounded-full"></div> 
                                     <span id="recordTimerDisplay">${this.formatRecordTime(this.state.recordTime)}</span>
                                 </div>
                                 ` : ''}
                             </div>
                             <div class="bg-stone-50 p-6 sm:p-8 rounded-[3rem] border-4 border-stone-100 flex flex-col gap-4 relative z-10">
-                                <input type="text" id="meetingTitleInput" placeholder="TOPLANTI BAŞLIĞI" class="w-full bg-transparent text-2xl sm:text-3xl font-black text-pink-400 uppercase outline-none placeholder:text-pink-200" />
-                                <textarea id="meetingContentInput" class="w-full h-64 sm:h-80 bg-white p-6 sm:p-8 rounded-[2rem] text-lg sm:text-xl font-bold text-stone-600 outline-none border-2 border-transparent focus:border-pink-200 shadow-inner resize-none" placeholder="Hızlı notlarını buraya ateşle..."></textarea>
+                                <input type="text" id="meetingTitleInput" placeholder="TOPLANTI BAŞLIĞI" class="w-full bg-transparent text-2xl sm:text-3xl font-black text-pink-500 uppercase outline-none placeholder:text-pink-300" />
+                                <textarea id="meetingContentInput" class="w-full h-64 sm:h-80 bg-white p-6 sm:p-8 rounded-[2rem] text-lg sm:text-xl font-bold text-stone-700 outline-none border-2 border-transparent focus:border-pink-300 shadow-inner resize-none" placeholder="Hızlı notlarını buraya ateşle..."></textarea>
                                 <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mt-4 gap-4">
-                                    <button onclick="app.toggleRecord()" class="flex justify-center items-center gap-3 px-8 py-4 sm:py-5 rounded-[2rem] font-black uppercase shadow-2xl transition-all w-full sm:w-auto ${this.state.isRecording ? 'bg-pink-400 text-white' : 'bg-stone-700 text-white hover:bg-stone-800'}">
+                                    <button onclick="app.toggleRecord()" class="flex justify-center items-center gap-3 px-8 py-4 sm:py-5 rounded-[2rem] font-black uppercase shadow-2xl transition-all w-full sm:w-auto ${this.state.isRecording ? 'bg-pink-500 text-white' : 'bg-stone-800 text-white hover:scale-105'}">
                                         ${this.state.isRecording ? `<i data-lucide="square" class="w-6 h-6"></i> Durdur` : `<i data-lucide="mic" class="w-6 h-6"></i> Kaydı Başlat`}
                                     </button>
-                                    <button onclick="app.saveMeeting()" class="bg-pink-300 text-white px-10 py-4 sm:py-5 rounded-[2rem] font-black uppercase shadow-xl hover:bg-pink-400 transition-all w-full sm:w-auto">KAYDET</button>
+                                    <button onclick="app.saveMeeting()" class="bg-pink-400 text-white px-10 py-4 sm:py-5 rounded-[2rem] font-black uppercase shadow-xl hover:bg-pink-500 transition-all w-full sm:w-auto">KAYDET</button>
                                 </div>
                             </div>
                         </div>
@@ -813,14 +886,14 @@
             renderStickers() {
                 let categoriesHTML = Object.entries(stickersData).map(([category, items]) => `
                     <div>
-                        <h3 class="text-2xl font-black uppercase text-pink-400 mb-8 border-b-4 border-pink-100 pb-4 inline-block">
+                        <h3 class="text-2xl font-black uppercase text-rose-400 mb-8 border-b-4 border-rose-50 pb-4 inline-block">
                             ${category === 'is_dunyasi' ? 'İŞ DÜNYASI' : category.toUpperCase()}
                         </h3>
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
                             ${items.map(item => `
-                                <button onclick="app.copySticker('${item}')" class="bg-stone-50 border-4 border-stone-100 p-6 rounded-[2rem] text-center font-black hover:bg-white hover:border-pink-200 hover:scale-110 hover:-rotate-3 transition-all group relative ${category === 'emojiler' ? 'text-3xl' : 'text-base text-stone-600'}">
+                                <button onclick="app.copySticker('${item}')" class="bg-stone-50 border-4 border-stone-100 p-6 rounded-[2rem] text-center font-black hover:bg-white hover:border-rose-300 hover:scale-110 hover:-rotate-3 transition-all group relative ${category === 'emojiler' ? 'text-3xl' : 'text-base text-stone-600'}">
                                     <span class="block group-hover:scale-110 transition-transform">${item}</span>
-                                    <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-pink-400 transition-opacity"><i data-lucide="copy" class="w-4 h-4"></i></div>
+                                    <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-rose-400 transition-opacity"><i data-lucide="copy" class="w-4 h-4"></i></div>
                                 </button>
                             `).join('')}
                         </div>
@@ -828,10 +901,10 @@
                 `).join('');
 
                 return `
-                <div class="animate-slide-in-bottom bg-white p-6 sm:p-10 rounded-[4rem] shadow-2xl border-4 border-orange-100 min-h-[700px]">
+                <div class="animate-slide-in-bottom bg-white p-6 sm:p-10 rounded-[4rem] shadow-2xl border-4 border-rose-100 min-h-[700px]">
                     <div class="flex items-center gap-4 mb-10">
-                        <div class="bg-gradient-to-tr from-orange-200 to-pink-300 p-4 rounded-3xl text-white shadow-lg"><i data-lucide="smile" class="w-8 h-8"></i></div>
-                        <h2 class="text-3xl sm:text-4xl font-black text-stone-700 uppercase tracking-tighter">STICKER & EMOJI</h2>
+                        <div class="bg-gradient-to-tr from-orange-300 to-rose-400 p-4 rounded-3xl text-white shadow-lg"><i data-lucide="smile" class="w-8 h-8"></i></div>
+                        <h2 class="text-3xl sm:text-4xl font-black text-stone-800 uppercase tracking-tighter">STICKER & EMOJI</h2>
                     </div>
                     <p class="text-stone-400 font-bold mb-12 uppercase tracking-widest text-sm">İstediğine tıkla, kopyala ve dilediğin yere yapıştır! 🎨</p>
                     <div class="space-y-16">
