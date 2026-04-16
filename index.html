@@ -18,13 +18,21 @@
         }
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
         .view-anim { animation: zoomIn 0.3s ease-out forwards; }
+        
         .loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-        .modal-card { background: white; width: 100%; max-width: 450px; border-radius: 2.5rem; padding: 2rem; border: 4px border-rose-100; box-shadow: 0 30px 60px -12px rgba(0,0,0,0.3); }
+        
+        /* Modal Design */
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+        .modal-card { background: white; width: 100%; max-width: 480px; border-radius: 2.5rem; padding: 2rem; border: 4px solid #ffe4e6; box-shadow: 0 30px 60px -12px rgba(0,0,0,0.3); animation: zoomIn 0.2s ease-out; }
+
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #eecfd8; border-radius: 10px; }
+        
         input, textarea, select { transition: all 0.2s ease; border-width: 2px; border-color: #f3f4f6; outline: none; }
         input:focus, textarea:focus, select:focus { border-color: #f43f5e !important; box-shadow: 0 0 10px rgba(244, 63, 94, 0.1); }
+        button:active { transform: scale(0.96); }
+        .task-card { transition: all 0.2s ease; cursor: pointer; border-width: 2px; }
+        .task-card:hover { transform: translateY(-2px); border-color: #fb7185; background: #fff1f2; }
     </style>
 </head>
 <body class="min-h-screen p-3 sm:p-4 md:p-8 text-stone-800">
@@ -32,7 +40,7 @@
     <div id="loading" class="loading-overlay hidden">
         <div class="flex flex-col items-center gap-3">
             <div class="animate-spin rounded-full h-12 w-12 border-4 border-rose-400 border-t-transparent"></div>
-            <p class="font-black text-rose-500 uppercase text-[10px] tracking-[0.4em]">Bulutla Senkronize Ediliyor...</p>
+            <p class="font-black text-rose-500 uppercase text-[10px] tracking-[0.4em]">Canlı Senkronizasyon...</p>
         </div>
     </div>
 
@@ -41,10 +49,11 @@
 
     <div id="copyFeedback" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] bg-stone-800 text-white px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-4 border-2 border-rose-300 opacity-0 pointer-events-none transition-all duration-300">
         <i data-lucide="check" class="text-rose-300 w-6 h-6"></i>
-        <span id="copyFeedbackText" class="font-black uppercase tracking-widest text-sm">İşlem Başarılı!</span>
+        <span id="copyFeedbackText" class="font-black uppercase tracking-widest text-sm">İşlem Tamam!</span>
     </div>
 
     <script>
+        // BURAYA KENDİ WEB APP URL'Nİ YAPIŞTIR
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzgbQP7Cy_1juLVyayYn_9qHCVY3vDnaLFNdnGWUAjMe-zSaPY3Ws4M4wcVBBWxgT636A/exec";
 
         window.app = {
@@ -54,7 +63,8 @@
                 activeMember: 'Beyza',
                 archive: {},
                 isSyncing: false,
-                editingTask: null 
+                editingTask: null,
+                lastWriteTime: 0 // GÜVENLİK DUVARI İÇİN ZAMAN DAMGASI
             },
             
             timers: { sync: null, autoRefresh: null },
@@ -63,34 +73,56 @@
                 const today = new Date();
                 this.state.selectedMonth = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
                 
-                const saved = localStorage.getItem('notlarim_pro_v18');
+                const saved = localStorage.getItem('notlarim_pro_v23_fixed');
                 if (saved) {
                     try { this.state.archive = JSON.parse(saved); } catch(e) { this.state.archive = {}; }
                 }
 
                 this.render();
                 this.startClock();
+                
                 await this.loadFromSheets(saved ? true : false);
 
+                // Otomatik yenileme
                 this.timers.autoRefresh = setInterval(() => {
                     const active = document.activeElement;
-                    if (!this.state.isSyncing && !this.state.editingTask && active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA') {
+                    if (!this.state.editingTask && active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA') {
                         this.loadFromSheets(true); 
                     }
-                }, 2000);
+                }, 2500);
+            },
+
+            async fetchWithRetry(url, options = {}, retries = 3, delay = 1000) {
+                try {
+                    const response = await fetch(url, options);
+                    return response;
+                } catch (error) {
+                    if (retries > 0) {
+                        await new Promise(res => setTimeout(res, delay));
+                        return this.fetchWithRetry(url, options, retries - 1, delay * 2);
+                    }
+                    throw error;
+                }
             },
 
             async loadFromSheets(silent = false) {
-                if (this.state.isSyncing) return;
+                // KESİN ÇÖZÜM: Sen işlem yaptıktan sonra 6 saniye boyunca Sheets'ten veri ÇEKME. 
+                // Bu, eski verinin gelip yeni sildiğin/eklediğin şeyi bozmasını (ekran zıplamasını) engeller.
+                if (this.state.isSyncing || (Date.now() - this.state.lastWriteTime < 6000)) return;
+
                 if (!silent) this.setLoading(true);
                 try {
-                    const res = await fetch(`${APPS_SCRIPT_URL}?action=load&monthKey=${this.state.selectedMonth}&t=${Date.now()}`);
+                    const res = await this.fetchWithRetry(`${APPS_SCRIPT_URL}?action=load&monthKey=${this.state.selectedMonth}&t=${Date.now()}`);
                     const sheetsData = await res.json();
                     
                     if (sheetsData && typeof sheetsData === 'object' && !sheetsData.status) {
                         const sanitized = {
                             tasks: Array.isArray(sheetsData.tasks) ? sheetsData.tasks : [],
-                            teamTasks: sheetsData.teamTasks || { Beyza: [], Zeliha: [], Burak: [] },
+                            teamTasks: {
+                                Beyza: Array.isArray(sheetsData.teamTasks?.Beyza) ? sheetsData.teamTasks.Beyza : [],
+                                Zeliha: Array.isArray(sheetsData.teamTasks?.Zeliha) ? sheetsData.teamTasks.Zeliha : [],
+                                Burak: Array.isArray(sheetsData.teamTasks?.Burak) ? sheetsData.teamTasks.Burak : []
+                            },
                             contentIdeas: Array.isArray(sheetsData.contentIdeas) ? sheetsData.contentIdeas : [],
                             weeklyNotes: Array.isArray(sheetsData.weeklyNotes) ? sheetsData.weeklyNotes : [],
                             adsData: Array.isArray(sheetsData.adsData) ? sheetsData.adsData : [],
@@ -98,13 +130,16 @@
                             meetings: Array.isArray(sheetsData.meetings) ? sheetsData.meetings : []
                         };
 
-                        if (JSON.stringify(this.state.archive[this.state.selectedMonth]) !== JSON.stringify(sanitized)) {
+                        const currentStr = JSON.stringify(this.getActiveData());
+                        if (currentStr !== JSON.stringify(sanitized)) {
                             this.state.archive[this.state.selectedMonth] = sanitized;
-                            localStorage.setItem('notlarim_pro_v18', JSON.stringify(this.state.archive));
+                            localStorage.setItem('notlarim_pro_v23_fixed', JSON.stringify(this.state.archive));
                             this.render(false);
                         }
                     }
-                } catch (e) { console.error("Cloud Error:", e); }
+                } catch (e) { 
+                    console.warn("Otomatik Yenileme Atlandı");
+                }
                 this.setLoading(false);
             },
 
@@ -115,24 +150,53 @@
             },
 
             getActiveData() {
-                if (!this.state.archive[this.state.selectedMonth]) {
-                    this.state.archive[this.state.selectedMonth] = { tasks: [], teamTasks: { Beyza: [], Zeliha: [], Burak: [] }, contentIdeas: [], weeklyNotes: [], adsData: [], dashboardNotes: '', meetings: [] };
+                let data = this.state.archive[this.state.selectedMonth];
+                if (!data) {
+                    data = { tasks: [], teamTasks: { Beyza: [], Zeliha: [], Burak: [] }, contentIdeas: [], weeklyNotes: [], adsData: [], dashboardNotes: '', meetings: [] };
+                    this.state.archive[this.state.selectedMonth] = data;
                 }
-                return this.state.archive[this.state.selectedMonth];
+                data.tasks = Array.isArray(data.tasks) ? data.tasks : [];
+                data.teamTasks = data.teamTasks || { Beyza: [], Zeliha: [], Burak: [] };
+                data.teamTasks.Beyza = Array.isArray(data.teamTasks.Beyza) ? data.teamTasks.Beyza : [];
+                data.teamTasks.Zeliha = Array.isArray(data.teamTasks.Zeliha) ? data.teamTasks.Zeliha : [];
+                data.teamTasks.Burak = Array.isArray(data.teamTasks.Burak) ? data.teamTasks.Burak : [];
+                data.contentIdeas = Array.isArray(data.contentIdeas) ? data.contentIdeas : [];
+                data.weeklyNotes = Array.isArray(data.weeklyNotes) ? data.weeklyNotes : [];
+                data.adsData = Array.isArray(data.adsData) ? data.adsData : [];
+                data.meetings = Array.isArray(data.meetings) ? data.meetings : [];
+                data.dashboardNotes = data.dashboardNotes || '';
+                return data;
             },
 
-            saveData(reRender = true) {
-                this.state.isSyncing = true;
-                localStorage.setItem('notlarim_pro_v18', JSON.stringify(this.state.archive));
+            saveData(reRender = true, immediate = false) {
+                this.state.lastWriteTime = Date.now(); // Her işlemde süreyi sıfırla
+                
+                localStorage.setItem('notlarim_pro_v23_fixed', JSON.stringify(this.state.archive));
                 if (reRender) this.render(false);
                 
                 if (this.timers.sync) clearTimeout(this.timers.sync);
-                this.timers.sync = setTimeout(() => {
-                    fetch(APPS_SCRIPT_URL, {
-                        method: "POST",
-                        body: JSON.stringify({ monthKey: this.state.selectedMonth, data: this.getActiveData() })
-                    }).then(() => { this.state.isSyncing = false; });
-                }, 1000);
+                
+                const triggerSync = async () => {
+                    this.state.isSyncing = true;
+                    try {
+                        await this.fetchWithRetry(APPS_SCRIPT_URL, {
+                            method: "POST",
+                            headers: { "Content-Type": "text/plain;charset=utf-8" }, 
+                            body: JSON.stringify({ monthKey: this.state.selectedMonth, data: this.getActiveData() })
+                        });
+                        this.state.isSyncing = false;
+                        // BURADAKİ ANINDA YENİLEME SİLİNDİ (Veri kaybı ve atlama yapmaması için)
+                    } catch (e) {
+                        this.state.isSyncing = false;
+                        this.showToast("Kaydedilirken ağ hatası oluştu!");
+                    }
+                };
+
+                if (immediate) {
+                    triggerSync();
+                } else {
+                    this.timers.sync = setTimeout(triggerSync, 1000);
+                }
             },
 
             showToast(msg) {
@@ -142,7 +206,7 @@
                 toastText.innerText = msg;
                 toast.style.opacity = '1';
                 toast.style.pointerEvents = 'auto';
-                setTimeout(() => { toast.style.opacity = '0'; toast.style.pointerEvents = 'none'; }, 2000);
+                setTimeout(() => { toast.style.opacity = '0'; toast.style.pointerEvents = 'none'; }, 2500);
             },
 
             startClock() {
@@ -152,7 +216,11 @@
                 }, 1000);
             },
 
-            setView(v) { this.state.currentView = v; this.state.editingTask = null; this.render(true); },
+            setView(v) { 
+                this.state.currentView = v; 
+                this.state.editingTask = null; 
+                this.render(true); 
+            },
 
             async handleMonthChange(dir) {
                 const parts = this.state.selectedMonth.split('-');
@@ -164,35 +232,37 @@
                 await this.loadFromSheets();
             },
 
+            // --- GÖREVLER ---
             addTask() {
                 const input = document.getElementById('newTaskInput');
                 if(!input || !input.value.trim()) return;
                 this.getActiveData().tasks.unshift({ id: Date.now(), text: input.value.trim(), completed: false, priority: document.getElementById('newTaskPriority').value, dueDate: document.getElementById('newTaskDate').value });
-                this.saveData();
+                this.saveData(true, true);
                 input.value = '';
-                this.showToast('Eklendi!');
+                this.showToast('Görev Planlara Eklendi!');
             },
             toggleTask(id) { 
                 const t = this.getActiveData().tasks.find(x => x.id == id); 
                 if(t) t.completed = !t.completed; 
-                this.saveData(); 
+                this.saveData(true, true);
             },
             deleteTask(id) { 
                 this.getActiveData().tasks = this.getActiveData().tasks.filter(x => x.id != id); 
-                this.saveData(); 
+                this.saveData(true, true);
             },
 
+            // --- EKİP MODALI ---
             setActiveMember(m) { this.state.activeMember = m; this.render(false); },
             
             openEditModal(id) {
                 const data = this.getActiveData();
-                let taskObj = null; let currentOwner = '';
-                for (let m in data.teamTasks) {
-                    const found = data.teamTasks[m].find(t => String(t.id) === String(id));
-                    if (found) { taskObj = found; currentOwner = m; break; }
+                let taskObj = null; let owner = '';
+                for (let member in data.teamTasks) {
+                    const found = data.teamTasks[member].find(t => String(t.id) === String(id));
+                    if (found) { taskObj = found; owner = member; break; }
                 }
                 if (taskObj) {
-                    this.state.editingTask = { ...taskObj, owner: currentOwner };
+                    this.state.editingTask = { ...taskObj, owner };
                     this.render(false);
                 }
             },
@@ -200,69 +270,100 @@
             closeModal() { this.state.editingTask = null; this.render(false); },
 
             updateTeamTaskFromModal() {
-                const newText = document.getElementById('modalTaskText').value.trim();
+                const newTitle = document.getElementById('modalTaskTitle').value.trim();
+                const newNote = document.getElementById('modalTaskNote').value.trim();
                 const newOwner = document.getElementById('modalOwnerSelect').value;
-                if (!newText) return;
+                if (!newTitle) return;
 
                 const data = this.getActiveData();
                 const taskId = this.state.editingTask.id;
 
                 for (let m in data.teamTasks) {
-                    data.teamTasks[m] = data.teamTasks[m].filter(t => t.id != taskId);
+                    data.teamTasks[m] = data.teamTasks[m].filter(t => String(t.id) !== String(taskId));
                 }
 
-                const formatted = `${newOwner.toUpperCase()} - ${newText}`;
-                if (!data.teamTasks[newOwner]) data.teamTasks[newOwner] = [];
-                data.teamTasks[newOwner].unshift({ id: taskId, text: formatted, completed: false });
+                data.teamTasks[newOwner].unshift({ id: taskId, title: newTitle, note: newNote, completed: false });
                 
                 this.state.activeMember = newOwner;
                 this.state.editingTask = null;
-                this.saveData();
-                this.showToast('Güncellendi!');
+                this.saveData(true, true);
+                this.showToast('Değişiklik Kaydedildi!');
             },
 
             addTeamTask() {
-                const input = document.getElementById('newTeamTaskInput');
+                const titleInput = document.getElementById('newTeamTitleInput');
+                const noteInput = document.getElementById('newTeamNoteInput');
                 const memberSelect = document.getElementById('teamMemberSelectAdd');
-                if(!input || !input.value.trim()) return;
+                if(!titleInput || !titleInput.value.trim()) return;
+                
                 const member = memberSelect.value;
-                const formatted = `${member.toUpperCase()} - ${input.value.trim()}`;
                 const data = this.getActiveData();
-                if (!data.teamTasks[member]) data.teamTasks[member] = [];
-                data.teamTasks[member].unshift({ id: Date.now(), text: formatted, completed: false });
+                
+                data.teamTasks[member].unshift({ id: Date.now(), title: titleInput.value.trim(), note: noteInput.value.trim(), completed: false });
+                
                 this.state.activeMember = member;
-                this.saveData();
-                input.value = '';
-                this.showToast('Görevi Atandı!');
+                this.saveData(true, true);
+                titleInput.value = '';
+                noteInput.value = '';
+                this.showToast('Sisteme Atandı!');
             },
             toggleTeamTask(id) { 
-                const t = (this.getActiveData().teamTasks[this.state.activeMember] || []).find(x => x.id == id); 
+                const t = (this.getActiveData().teamTasks[this.state.activeMember] || []).find(x => String(x.id) === String(id)); 
                 if(t) t.completed = !t.completed; 
-                this.saveData(); 
+                this.saveData(true, true);
             },
             deleteTeamTask(id) { 
-                this.getActiveData().teamTasks[this.state.activeMember] = (this.getActiveData().teamTasks[this.state.activeMember] || []).filter(x => x.id != id); 
-                this.saveData(); 
+                this.getActiveData().teamTasks[this.state.activeMember] = (this.getActiveData().teamTasks[this.state.activeMember] || []).filter(x => String(x.id) !== String(id)); 
+                this.saveData(true, true);
             },
 
+            // --- FİKİRLER ---
+            addIdea() {
+                const input = document.getElementById('newIdeaInput');
+                if(!input || !input.value.trim()) return;
+                this.getActiveData().contentIdeas.unshift({ id: Date.now(), text: input.value.trim(), completed: false });
+                this.saveData(true, true); input.value = '';
+                this.showToast('Fikir Eklendi!');
+            },
+            toggleIdea(id) { const i = this.getActiveData().contentIdeas.find(x => x.id == id); if(i) i.completed = !i.completed; this.saveData(true, true); },
+            deleteIdea(id) { this.getActiveData().contentIdeas = this.getActiveData().contentIdeas.filter(x => x.id != id); this.saveData(true, true); },
+
+            // --- HAFTALIK NOTLAR ---
+            addWeeklyNote() {
+                const input = document.getElementById('newNoteTitleInput');
+                if(!input || !input.value.trim()) return;
+                this.getActiveData().weeklyNotes.unshift({ id: Date.now(), title: input.value.trim(), content: '' });
+                this.saveData(true, true); input.value = '';
+                this.showToast('Konu Oluşturuldu!');
+            },
+            updateWeeklyNote(id, val) { const n = this.getActiveData().weeklyNotes.find(x => x.id == id); if(n) n.content = val; },
+            deleteWeeklyNote(id) { this.getActiveData().weeklyNotes = this.getActiveData().weeklyNotes.filter(x => x.id != id); this.saveData(true, true); },
+
+            // --- REKLAM ---
+            addAdData() {
+                const d = document.getElementById('adDate').value;
+                const s = document.getElementById('adSpend').value;
+                if(!d || !s) return;
+                this.getActiveData().adsData.push({ id: Date.now(), date: d, spend: parseFloat(s), reach: parseInt(document.getElementById('adReach').value)||0, clicks: parseInt(document.getElementById('adClicks').value)||0 });
+                this.saveData(true, true);
+                this.showToast('Analiz Kaydedildi!');
+            },
+
+            // --- HIZLI NOT ---
             noteToDaily() {
                 const data = this.getActiveData();
-                const note = data.dashboardNotes.trim();
-                if (!note) return;
+                const note = (data.dashboardNotes || '').trim();
+                if (!note) { this.showToast('Aktarılacak not yok!'); return; }
                 data.tasks.unshift({ id: Date.now(), text: note, completed: false, priority: 'high', dueDate: new Date().toISOString().split('T')[0] });
                 data.dashboardNotes = '';
-                this.saveData();
-                this.showToast('Günlüğe Aktarıldı!');
+                this.saveData(true, true);
+                this.showToast('Günlüğe Aktarıldı! 🚀');
             },
 
             render(withAnim = false) {
                 const root = document.getElementById('app-root');
                 if(!root) return;
-                let html = `
-                    ${this.getHTMLHeader()}
-                    <div class="${withAnim ? 'view-anim' : ''}">${this.getHTMLView()}</div>
-                    ${this.getHTMLFooter()}
-                `;
+                let html = `${this.getHTMLHeader()}<div class="${withAnim ? 'view-anim' : ''}">${this.getHTMLView()}</div>${this.getHTMLFooter()}`;
                 if (this.state.editingTask) html += this.getModalHTML();
                 root.innerHTML = html;
                 lucide.createIcons();
@@ -270,7 +371,6 @@
 
             getModalHTML() {
                 const task = this.state.editingTask;
-                const rawText = task.text.includes(' - ') ? task.text.split(' - ')[1] : task.text;
                 return `
                 <div class="modal-backdrop" onclick="app.closeModal()">
                     <div class="modal-card" onclick="event.stopPropagation()">
@@ -278,7 +378,7 @@
                             <div class="bg-rose-100 p-3 rounded-2xl text-rose-500"><i data-lucide="edit-3"></i></div>
                             <h3 class="text-2xl font-black uppercase tracking-tighter">Düzenle</h3>
                         </div>
-                        <div class="space-y-4">
+                        <div class="space-y-4 font-bold text-stone-700">
                             <div><label class="text-[10px] font-black uppercase text-stone-400 mb-2 block tracking-widest">Sorumlu</label>
                                 <select id="modalOwnerSelect" class="w-full p-3 rounded-xl font-bold bg-stone-50 border-2 border-stone-100 outline-none">
                                     <option value="Beyza" ${task.owner === 'Beyza' ? 'selected' : ''}>Beyza</option>
@@ -286,12 +386,15 @@
                                     <option value="Burak" ${task.owner === 'Burak' ? 'selected' : ''}>Burak</option>
                                 </select>
                             </div>
-                            <div><label class="text-[10px] font-black uppercase text-stone-400 mb-2 block tracking-widest">Not</label>
-                                <textarea id="modalTaskText" class="w-full p-4 rounded-xl font-bold text-base bg-stone-50 h-32 resize-none shadow-inner outline-none">${rawText}</textarea>
+                            <div><label class="text-[10px] font-black uppercase text-stone-400 mb-2 block tracking-widest">Başlık</label>
+                                <input id="modalTaskTitle" type="text" class="w-full p-3 rounded-xl font-bold bg-stone-50 border-2 border-stone-100 outline-none" value="${task.title || ''}" />
+                            </div>
+                            <div><label class="text-[10px] font-black uppercase text-stone-400 mb-2 block tracking-widest">Not (G Sütunu)</label>
+                                <textarea id="modalTaskNote" class="w-full p-4 rounded-xl font-bold text-base bg-stone-50 h-32 resize-none shadow-inner outline-none">${task.note || ''}</textarea>
                             </div>
                             <div class="flex gap-3 pt-4">
-                                <button onclick="app.closeModal()" class="flex-1 py-3 font-black uppercase text-xs text-stone-400">Vazgeç</button>
-                                <button onclick="app.updateTeamTaskFromModal()" class="flex-[2] bg-rose-500 text-white py-3 rounded-xl font-black uppercase text-xs shadow-lg shadow-rose-200">KAYDET</button>
+                                <button onclick="app.closeModal()" class="flex-1 py-3 font-black uppercase text-xs text-stone-400 hover:text-stone-600">Vazgeç</button>
+                                <button onclick="app.updateTeamTaskFromModal()" class="flex-[2] bg-rose-500 text-white py-3 rounded-xl font-black uppercase text-xs shadow-lg shadow-rose-200">GÜNCELLE</button>
                             </div>
                         </div>
                     </div>
@@ -306,20 +409,20 @@
                     <div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-6 rounded-[2.5rem] shadow-xl border-2 border-stone-100">
                         <div class="flex items-center gap-4">
                             ${this.state.currentView !== 'dashboard' ? `<button onclick="app.setView('dashboard')" class="bg-stone-800 text-white p-3 rounded-xl hover:scale-110 transition-all shadow-md"><i data-lucide="arrow-left"></i></button>` : ''}
-                            <div class="bg-rose-400 p-4 rounded-2xl shadow-lg text-white"><i data-lucide="sparkles" size="32"></i></div>
-                            <div><h1 class="text-3xl font-black uppercase leading-none tracking-tighter">Notlarım</h1><span class="text-rose-400 text-[10px] font-black uppercase tracking-widest">${this.state.currentView}</span></div>
+                            <div class="bg-rose-400 p-4 rounded-2xl shadow-lg text-white shadow-rose-200"><i data-lucide="sparkles" size="32"></i></div>
+                            <div><h1 class="text-3xl font-black uppercase leading-none tracking-tighter text-stone-800">Notlarım</h1><span class="text-rose-400 text-[10px] font-black uppercase tracking-widest">${this.state.currentView}</span></div>
                         </div>
-                        <div class="font-black text-2xl bg-stone-50 px-8 py-3 rounded-2xl border-2 border-stone-100 flex items-center gap-3">
+                        <div class="font-black text-2xl bg-stone-50 px-8 py-3 rounded-2xl border-2 border-stone-100 flex items-center gap-3 text-stone-700">
                             <i data-lucide="clock" class="text-rose-400 w-6 h-6"></i><span id="liveClock">--:--</span>
                         </div>
                     </div>
-                    <div class="mt-4 flex flex-col sm:flex-row items-center justify-between bg-white px-6 py-4 rounded-[2rem] shadow-sm border-b-4 border-rose-200 gap-4 text-stone-800">
+                    <div class="mt-4 flex flex-col sm:flex-row items-center justify-between bg-white px-6 py-4 rounded-[2rem] shadow-sm border-b-4 border-rose-200 gap-4 text-stone-800 font-bold">
                         <div class="flex items-center gap-4">
                             <button onclick="app.handleMonthChange('prev')" class="bg-stone-100 p-2 rounded-lg hover:bg-rose-50 transition-colors"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
-                            <div class="text-xl font-black min-w-[150px] text-center uppercase tracking-tight">${monthName}</div>
+                            <div class="text-lg font-black min-w-[150px] text-center uppercase tracking-tight">${monthName}</div>
                             <button onclick="app.handleMonthChange('next')" class="bg-stone-100 p-2 rounded-lg hover:bg-rose-50 transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
                         </div>
-                        <div class="text-[9px] font-black uppercase text-stone-300 tracking-[0.3em] flex items-center gap-2 animate-pulse"><div class="w-2 h-2 bg-emerald-400 rounded-full"></div> CANLI BAĞLANTI</div>
+                        <div class="text-[9px] font-black uppercase text-stone-300 tracking-[0.3em] flex items-center gap-2 animate-pulse"><div class="w-2 h-2 bg-emerald-400 rounded-full"></div> KORUMALI SİNC</div>
                     </div>
                 </header>`;
             },
@@ -334,27 +437,26 @@
                     const urgents = data.tasks.filter(t => !t.completed && t.priority === 'high');
                     const menu = [
                         { id: 'daily', icon: 'list-todo', label: 'GÜNLÜK', color: 'from-blue-300 to-cyan-200' },
-                        { id: 'weekly', icon: 'calendar', label: 'HAFTALIK', color: 'from-emerald-300 to-teal-200' },
                         { id: 'team', icon: 'user-plus', label: 'EKİP', color: 'from-rose-400 to-pink-300' },
+                        { id: 'weekly', icon: 'calendar', label: 'HAFTALIK', color: 'from-emerald-300 to-teal-200' },
                         { id: 'ideas', icon: 'lightbulb', label: 'FİKİRLER', color: 'from-orange-300 to-amber-200' },
-                        { id: 'analytics', icon: 'trending-up', label: 'ANALİZ', color: 'from-indigo-300 to-purple-200' },
-                        { id: 'stickers', icon: 'smile', label: 'STICKER', color: 'from-yellow-200 to-rose-200' }
+                        { id: 'analytics', icon: 'trending-up', label: 'ANALİZ', color: 'from-indigo-300 to-purple-200' }
                     ];
 
                     return `
-                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                         ${menu.map(c => `<div onclick="app.setView('${c.id}')" class="group bg-gradient-to-br ${c.color} p-6 rounded-[2rem] shadow-lg hover:scale-105 cursor-pointer relative overflow-hidden transition-all text-stone-800"><i data-lucide="${c.icon}" class="w-12 h-12 absolute -right-2 -top-2 opacity-10"></i><div class="bg-white/40 w-8 h-8 rounded-xl flex items-center justify-center mb-2"><i data-lucide="${c.icon}" class="w-4 h-4"></i></div><h2 class="text-[10px] font-black uppercase tracking-widest">${c.label}</h2></div>`).join('')}
                     </div>
                     <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div class="bg-white p-8 rounded-[3rem] shadow-xl border-4 border-stone-800 h-fit">
                             <h3 class="text-xl font-black text-stone-800 mb-6 uppercase tracking-tighter flex items-center gap-2"><i data-lucide="bell" class="text-rose-400 w-5 h-5"></i> Acil Radarı</h3>
                             <div class="space-y-3 max-h-[300px] overflow-y-auto pr-2">
-                                ${urgents.length === 0 ? '<p class="text-stone-300 italic text-sm text-center py-6">🕊️ Bugün her şey kontrol altında.</p>' : urgents.map(r => `<div class="bg-rose-50 p-5 rounded-2xl border-2 border-rose-100 flex justify-between items-center shadow-sm"><span class="font-bold text-sm text-stone-700 leading-tight pr-4">${r.text}</span><span class="bg-rose-500 text-white px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest whitespace-nowrap">ACİL</span></div>`).join('')}
+                                ${urgents.length === 0 ? '<p class="text-stone-300 italic text-sm text-center py-6">🕊️ Bugün her şey kontrol altında.</p>' : urgents.map(r => `<div class="bg-rose-50 p-4 rounded-2xl border-2 border-rose-100 flex justify-between items-center shadow-sm"><span class="font-bold text-sm text-stone-700 leading-tight pr-4">${r.text}</span><span class="bg-rose-500 text-white px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest whitespace-nowrap">ACİL</span></div>`).join('')}
                             </div>
                         </div>
                         <div class="bg-stone-800 p-8 rounded-[3rem] text-white relative flex flex-col card-shadow">
                             <h3 class="text-xl font-black text-rose-300 mb-5 uppercase tracking-tighter">Hızlı Not Defteri</h3>
-                            <textarea id="dashboardNotesInput" oninput="app.getActiveData().dashboardNotes = this.value; app.saveData(false);" class="w-full bg-white/5 border-2 border-stone-600 rounded-[1.5rem] p-5 text-xl min-h-[220px] outline-none text-white shadow-inner font-bold" placeholder="Bugünkü stratejilerini buraya dök...">${data.dashboardNotes || ''}</textarea>
+                            <textarea id="dashboardNotesInput" oninput="app.getActiveData().dashboardNotes = this.value; app.saveData(false);" class="w-full bg-white/5 border-2 border-stone-600 rounded-[1.5rem] p-5 text-xl min-h-[220px] outline-none text-white shadow-inner font-bold" placeholder="Bugünkü stratejilerini buraya dök...">${data.dashboardNotes}</textarea>
                             <div class="mt-4 flex justify-end"><button onclick="app.noteToDaily();" class="bg-rose-400 text-white px-10 py-3 rounded-2xl font-black text-xs hover:bg-rose-500 shadow-xl transition-all uppercase tracking-widest">Günlüğe Aktar</button></div>
                         </div>
                     </div>`;
@@ -365,7 +467,7 @@
                     <div class="bg-white p-6 sm:p-10 rounded-[3rem] shadow-2xl border-4 border-rose-100 min-h-[600px]">
                         <h2 class="text-2xl sm:text-3xl font-black text-stone-800 mb-8 uppercase tracking-tighter">GÜNLÜK PLAN</h2>
                         <div class="flex flex-col md:flex-row gap-4 mb-10 bg-rose-50 p-6 rounded-[2rem] border-2 border-rose-100 shadow-inner">
-                            <input type="text" id="newTaskInput" placeholder="Ne yapıyoruz?" class="flex-1 p-4 rounded-xl font-bold" />
+                            <input type="text" id="newTaskInput" placeholder="Ne yapıyoruz?" class="flex-1 p-4 rounded-xl font-bold bg-white text-stone-800 shadow-sm" />
                             <div class="flex gap-3">
                                 <select id="newTaskPriority" class="flex-1 p-4 rounded-xl font-black text-rose-500 bg-white"><option value="high">🔥 YÜKSEK</option><option value="medium" selected>⚡ ORTA</option><option value="low">☘️ DÜŞÜK</option></select>
                                 <input type="date" id="newTaskDate" value="${todayStr}" class="flex-1 p-4 rounded-xl font-bold text-stone-500 bg-white" />
@@ -373,7 +475,7 @@
                             <button onclick="app.addTask()" class="w-full md:w-auto bg-rose-400 text-white p-4 px-10 rounded-xl hover:bg-rose-500 shadow-lg font-black uppercase text-sm tracking-widest">EKLE</button>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-stone-800 font-bold">
-                            ${data.tasks.map(t => `<div class="p-5 bg-white border-2 border-rose-50 rounded-2xl flex items-center gap-4 transition-all ${t.completed ? 'opacity-40 grayscale bg-stone-50 border-transparent' : 'shadow-sm'} card-hover"><button onclick="app.toggleTask(${t.id})">${t.completed ? '<i data-lucide="check-circle-2" class="text-rose-400 w-7 h-7"></i>' : '<i data-lucide="circle" class="text-stone-100 w-7 h-7"></i>'}</button><span class="flex-1 ${t.completed ? 'line-through text-stone-300 italic' : ''}">${t.text}</span><button onclick="app.deleteTask(${t.id})" class="text-stone-200 hover:text-rose-400"><i data-lucide="trash-2"></i></button></div>`).join('')}
+                            ${data.tasks.map(t => `<div class="p-5 bg-white border-2 border-rose-50 rounded-2xl flex items-center gap-4 transition-all ${t.completed ? 'opacity-40 grayscale bg-stone-50 border-transparent' : 'shadow-sm'} card-hover"><button onclick="app.toggleTask(${t.id})">${t.completed ? '<i data-lucide="check-circle-2" class="text-rose-400 w-7 h-7"></i>' : '<i data-lucide="circle" class="text-stone-100 w-7 h-7"></i>'}</button><span class="flex-1 ${t.completed ? 'line-through text-stone-300 italic' : 'text-stone-800 font-black text-lg'}">${t.text}</span><button onclick="app.deleteTask(${t.id})" class="text-stone-200 hover:text-rose-400"><i data-lucide="trash-2"></i></button></div>`).join('')}
                         </div>
                     </div>`;
                 }
@@ -383,14 +485,21 @@
                     <div class="bg-white p-6 sm:p-10 rounded-[3rem] shadow-2xl border-4 border-pink-100 min-h-[600px]">
                         <h2 class="text-2xl sm:text-3xl font-black text-stone-800 mb-8 uppercase tracking-tighter">EKİP YÖNETİMİ</h2>
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            <div class="lg:col-span-1 space-y-6 text-stone-800">
-                                <div class="bg-stone-50 p-8 rounded-[2.5rem] border-2 border-stone-100 shadow-inner">
-                                    <h3 class="font-black text-pink-500 mb-4 text-xs uppercase tracking-widest">YENİ GÖREV ATA</h3>
-                                    <div class="space-y-4 font-bold">
-                                        <select id="teamMemberSelectAdd" class="w-full p-4 rounded-2xl font-bold bg-white outline-none border-2 border-stone-50 shadow-sm">
-                                            <option value="Beyza">Beyza</option><option value="Zeliha">Zeliha</option><option value="Burak">Burak</option>
-                                        </select>
-                                        <textarea id="newTeamTaskInput" placeholder="İşi detaylandır..." class="w-full p-4 rounded-2xl outline-none border-2 border-transparent h-32 resize-none shadow-sm"></textarea>
+                            <div class="lg:col-span-1 space-y-6 text-stone-800 font-bold">
+                                <div class="bg-stone-50 p-8 rounded-[2.5rem] border-2 border-stone-100 h-fit shadow-inner">
+                                    <h3 class="font-black text-pink-500 mb-4 text-xs uppercase tracking-widest border-b border-pink-100 pb-2">GÖREV ATAMA</h3>
+                                    <div class="space-y-4">
+                                        <div><label class="text-[10px] uppercase text-stone-400 mb-1 block">Sorumlu Seç</label>
+                                          <select id="teamMemberSelectAdd" class="w-full p-4 rounded-2xl font-bold bg-white border-2 border-stone-50 shadow-sm outline-none">
+                                              <option value="Beyza">Beyza</option><option value="Zeliha">Zeliha</option><option value="Burak">Burak</option>
+                                          </select>
+                                        </div>
+                                        <div><label class="text-[10px] uppercase text-stone-400 mb-1 block">Başlık</label>
+                                          <input id="newTeamTitleInput" type="text" placeholder="Örn: Su Koy" class="w-full p-4 rounded-2xl border-2 border-stone-100 shadow-sm outline-none bg-white" />
+                                        </div>
+                                        <div><label class="text-[10px] uppercase text-stone-400 mb-1 block">Not (G Sütunu)</label>
+                                          <textarea id="newTeamNoteInput" placeholder="Detayları yaz..." class="w-full p-4 rounded-xl border-2 border-stone-100 h-24 resize-none shadow-sm outline-none bg-white font-bold"></textarea>
+                                        </div>
                                         <button onclick="app.addTeamTask()" class="w-full bg-pink-400 text-white py-4 rounded-2xl font-black uppercase text-xs shadow-md shadow-pink-100 hover:bg-pink-500 transition-all">SİSTEME KAYDET</button>
                                     </div>
                                 </div>
@@ -404,13 +513,39 @@
                                 </div>
                                 <div class="space-y-3 min-h-[400px]">
                                     ${(data.teamTasks[this.state.activeMember] || []).length === 0 ? 
-                                        '<div class="flex items-center justify-center h-48 bg-stone-50 rounded-[2rem] border-2 border-dashed border-stone-100 text-stone-300 italic text-sm">Görev listesi boş.</div>' : 
+                                        '<div class="flex items-center justify-center h-48 bg-stone-50 rounded-[2rem] border-2 border-dashed border-stone-200 text-stone-300 italic text-sm text-center">Henüz bir görev <br>atanmadı.</div>' : 
                                         data.teamTasks[this.state.activeMember].map(t => `
-                                        <div onclick="app.openEditModal('${t.id}')" class="p-5 bg-white border-2 border-pink-50 rounded-[1.8rem] flex items-center gap-4 text-sm font-bold shadow-sm task-item group">
+                                        <div onclick="app.openEditModal('${t.id}')" class="p-5 bg-white border-2 border-pink-50 rounded-[1.8rem] flex items-center gap-4 text-sm font-bold shadow-sm task-card group">
                                             <button onclick="event.stopPropagation(); app.toggleTeamTask('${t.id}')" class="active:scale-125 transition-transform">${t.completed ? '<i data-lucide="check-circle-2" class="text-emerald-400 w-7 h-7"></i>' : '<i data-lucide="circle" class="text-stone-100 w-7 h-7"></i>'}</button>
-                                            <span class="flex-1 ${t.completed ? 'line-through text-stone-300 italic' : 'text-stone-800'} leading-relaxed">${t.text}</span>
-                                            <button onclick="event.stopPropagation(); app.deleteTeamTask('${t.id}')"><i data-lucide="trash-2" class="w-5 h-5 text-stone-200 hover:text-rose-400 transition-colors"></i></button>
+                                            <div class="flex-1">
+                                              <span class="${t.completed ? 'line-through text-stone-300 italic' : 'text-stone-800'} block text-lg font-black leading-tight">${t.title || 'Başlıksız Görev'}</span>
+                                              ${t.note ? `<span class="text-[11px] text-stone-400 block mt-1 line-clamp-1">${t.note}</span>` : ''}
+                                            </div>
+                                            <button onclick="event.stopPropagation(); app.deleteTeamTask('${t.id}')" class="p-2 text-stone-200 hover:text-rose-400"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
                                         </div>`).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                }
+
+                if (this.state.currentView === 'analytics') {
+                    const maxS = Math.max(...data.adsData.map(d=>d.spend), 1);
+                    return `
+                    <div class="bg-white p-6 sm:p-10 rounded-[3rem] shadow-2xl border-4 border-stone-200 min-h-[600px]">
+                        <h2 class="text-2xl sm:text-3xl font-black text-stone-800 mb-8 uppercase tracking-tighter">REKLAM ANALİZİ</h2>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div class="bg-stone-50 p-6 rounded-[2rem] space-y-3 h-fit border-2 border-stone-100 shadow-inner">
+                                <input type="text" id="adDate" placeholder="Tarih (14.04)" class="w-full p-3.5 rounded-xl text-sm font-bold text-stone-700" />
+                                <input type="number" id="adSpend" placeholder="Harcama (TL)" class="w-full p-3.5 rounded-xl text-sm font-bold text-stone-700" />
+                                <button onclick="app.addAdData()" class="w-full bg-stone-800 text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest shadow-lg hover:bg-stone-700">GRAFİĞE EKLE</button>
+                            </div>
+                            <div class="lg:col-span-2 bg-stone-800 p-8 rounded-[2.5rem] flex flex-col min-h-[350px] relative overflow-hidden">
+                                <h3 class="text-rose-300 font-black text-[10px] uppercase mb-10 tracking-[0.4em] text-center border-b border-white/10 pb-4">Bütçe Performans Grafiği</h3>
+                                <div class="flex-1 flex items-end gap-2 border-b-2 border-stone-700 pb-3 overflow-x-auto min-h-[180px]">
+                                    ${data.adsData.map(d => `<div class="flex-1 bg-gradient-to-t from-rose-400 to-rose-300 rounded-t-lg min-w-[28px] hover:scale-110 transition-transform cursor-help relative group" style="height: ${(d.spend/maxS)*150}px">
+                                        <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white text-stone-800 text-[8px] p-2 rounded shadow-xl opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none font-bold z-10 border border-rose-100">${d.date}: ${d.spend} TL</div>
+                                    </div>`).join('')}
                                 </div>
                             </div>
                         </div>
@@ -426,12 +561,26 @@
                             <button onclick="app.addIdea()" class="bg-orange-400 text-white px-10 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-500 shadow-md transition-all">EKLE</button>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-stone-800 font-bold">
-                            ${data.contentIdeas.map(i => `<div class="p-5 bg-white border-2 border-orange-50 rounded-2xl flex items-center gap-4 shadow-sm transition-all hover:border-orange-200"><button onclick="app.toggleIdea(${i.id})">${i.completed ? '<i data-lucide="check-circle-2" class="text-orange-400"></i>' : '<i data-lucide="circle" class="text-stone-100"></i>'}</button><span class="flex-1 ${i.completed ? 'line-through text-stone-300 italic' : ''}">${i.text}</span><button onclick="app.deleteIdea(${i.id})"><i data-lucide="trash-2" class="text-stone-200 hover:text-rose-400"></i></button></div>`).join('')}
+                            ${data.contentIdeas.map(i => `<div class="p-5 bg-white border-2 border-orange-50 rounded-2xl flex items-center gap-4 shadow-sm transition-all hover:bg-orange-50"><button onclick="app.toggleIdea(${i.id})">${i.completed ? '<i data-lucide="check-circle-2" class="text-orange-400 w-7 h-7"></i>' : '<i data-lucide="circle" class="text-stone-100 w-7 h-7"></i>'}</button><span class="flex-1 ${i.completed ? 'line-through text-stone-300 italic' : ''} text-lg">${i.text}</span><button onclick="app.deleteIdea(${i.id})"><i data-lucide="trash-2" class="text-stone-200 hover:text-rose-400"></i></button></div>`).join('')}
                         </div>
                     </div>`;
                 }
 
-                return `<div class="p-20 text-center font-black opacity-10 uppercase tracking-widest text-stone-400">MOD YÜKLENİYOR...</div>`;
+                if (this.state.currentView === 'weekly') {
+                    return `
+                    <div class="bg-white p-6 sm:p-10 rounded-[3rem] shadow-2xl border-4 border-emerald-100 min-h-[600px]">
+                        <h2 class="text-2xl sm:text-3xl font-black text-stone-800 mb-8 uppercase tracking-tighter text-center">HAFTALIK KONULAR</h2>
+                        <div class="bg-emerald-50 p-6 rounded-[2rem] flex flex-col sm:flex-row gap-4 mb-8 border-2 border-emerald-100 shadow-inner">
+                            <input type="text" id="newNoteTitleInput" placeholder="Bu haftanın konusu nedir?.." class="flex-1 p-4 rounded-xl font-bold text-stone-800 shadow-sm" />
+                            <button onclick="app.addWeeklyNote()" class="bg-emerald-400 text-white px-10 py-4 rounded-xl font-black text-xs uppercase hover:bg-emerald-500 shadow-md">OLUŞTUR</button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            ${data.weeklyNotes.map(n => `<div class="p-6 bg-stone-50 rounded-[2.5rem] border-2 border-emerald-50 shadow-sm relative transition-all hover:border-emerald-200"><div class="flex justify-between items-center mb-4 px-2 text-stone-800"><h3 class="font-black text-stone-800 uppercase text-sm tracking-tight">${n.title}</h3><button onclick="app.deleteWeeklyNote(${n.id})" class="text-stone-300 hover:text-rose-400"><i data-lucide="trash-2" class="w-5 h-5"></i></button></div><textarea oninput="app.updateWeeklyNote(${n.id}, this.value)" class="w-full bg-white p-4 rounded-2xl border-2 border-transparent shadow-inner h-28 text-sm text-stone-700 font-bold focus:border-emerald-200" placeholder="İçeriği buraya dök...">${n.content || ''}</textarea><div class="flex justify-end mt-4 px-2"><button onclick="app.saveData(true, true);" class="bg-emerald-400 text-white px-6 py-2 rounded-xl text-[9px] font-black uppercase shadow-md hover:bg-emerald-500 transition-all">GÜNCELLE</button></div></div>`).join('')}
+                        </div>
+                    </div>`;
+                }
+
+                return `<div class="p-20 text-center font-black opacity-10 uppercase tracking-widest text-stone-400">YÜKLENİYOR...</div>`;
             }
         };
 
